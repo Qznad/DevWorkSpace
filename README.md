@@ -1,4 +1,4 @@
-# 🛠 DevWorkspace - Workspace Member Management
+#  DevWorkspace - Workspace Member Management
 
 [![Java](https://img.shields.io/badge/Java-17-blue)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.0.0-green)](https://spring.io/projects/spring-boot)
@@ -9,7 +9,7 @@ It allows workspace owners to add/remove members, assign roles, and view workspa
 
 ---
 
-## 📌 Features
+##  Features
 
 - Create and manage workspaces
 - Add members to a workspace (owner-only permission)
@@ -20,7 +20,7 @@ It allows workspace owners to add/remove members, assign roles, and view workspa
 
 ---
 
-## 🛠 Technology Stack
+##  Technology Stack
 
 - **Backend:** Java 17, Spring Boot 3
 - **Database:** H2 (in-memory for testing) / PostgreSQL or MySQL (optional for production)
@@ -30,7 +30,7 @@ It allows workspace owners to add/remove members, assign roles, and view workspa
 
 ---
 
-## 🗄 Database Schema
+##  Database Schema
 
 Tables:
 
@@ -46,7 +46,7 @@ Tables:
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 1. **Clone the repository**
 
