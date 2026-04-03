@@ -11,12 +11,12 @@ public class Message {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Lob
+    @Column(nullable = false)
     private String content;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private User sender;
 
     @ManyToOne
     @JoinColumn(name = "channel_id", nullable = false)
@@ -31,8 +31,8 @@ public class Message {
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
 
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
+    public User getSender() { return sender; }
+    public void setSender(User sender) { this.sender = sender; }
 
     public Channel getChannel() { return channel; }
     public void setChannel(Channel channel) { this.channel = channel; }

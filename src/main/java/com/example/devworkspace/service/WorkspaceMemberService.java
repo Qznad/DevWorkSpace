@@ -1,87 +1,99 @@
 package com.example.devworkspace.service;
 
 import com.example.devworkspace.dto.WorkspaceMemberDTO;
+import com.example.devworkspace.entity.User;
 import com.example.devworkspace.entity.Workspace;
 import com.example.devworkspace.entity.WorkspaceMember;
+import com.example.devworkspace.repository.UserRepository;
 import com.example.devworkspace.repository.WorkspaceMemberRepository;
 import com.example.devworkspace.repository.WorkspaceRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class WorkspaceMemberService {
 
-    private final WorkspaceMemberRepository memberRepository;
-    private final WorkspaceRepository workspaceRepository;
+    private final WorkspaceMemberRepository memberRepo;
+    private final WorkspaceRepository workspaceRepo;
+    private final UserRepository userRepo;
 
-    public WorkspaceMemberService(WorkspaceMemberRepository memberRepository,
-                                  WorkspaceRepository workspaceRepository) {
-        this.memberRepository = memberRepository;
-        this.workspaceRepository = workspaceRepository;
+    public WorkspaceMemberService(
+            WorkspaceMemberRepository memberRepo,
+            WorkspaceRepository workspaceRepo,
+            UserRepository userRepo) {
+        this.memberRepo = memberRepo;
+        this.workspaceRepo = workspaceRepo;
+        this.userRepo = userRepo;
     }
 
-    // Add member to workspace (owner-only)
-    public WorkspaceMember addMember(WorkspaceMember member, Long requesterId) {
-        // Load workspace from DB
-        Workspace workspace = workspaceRepository.findById(member.getWorkspace().getId())
-                .orElseThrow(() -> new RuntimeException("Workspace not found"));
-
-        // Check if requester is owner
-        if (!workspace.getOwner().getId().equals(requesterId)) {
-            throw new RuntimeException("Only owner can add members");
-        }
-
-        // Check if user already in workspace
-        Optional<WorkspaceMember> existingOpt = memberRepository
-                .findByUserIdAndWorkspaceId(member.getUser().getId(), workspace.getId());
-
-        return existingOpt.orElseGet(() -> {
-            member.setWorkspace(workspace); // ensure workspace is set
-            return memberRepository.save(member);
-        });
+    // Convert WorkspaceMember to DTO
+    private WorkspaceMemberDTO toDTO(WorkspaceMember member) {
+        WorkspaceMemberDTO dto = new WorkspaceMemberDTO();
+        dto.setUserId(member.getUser().getId());
+        dto.setRole(member.getRole());
+        dto.setUserName(member.getUser().getName());
+        dto.setUserEmail(member.getUser().getEmail());
+        return dto;
     }
 
-    // Get all workspace members (raw entities)
-    public List<WorkspaceMember> getAllMembers() {
-        return memberRepository.findAll();
-    }
-
-    // Get members for a specific workspace (raw entities)
-    public List<WorkspaceMember> getMembersByWorkspace(Long workspaceId) {
-        return memberRepository.findByWorkspaceId(workspaceId);
-    }
-
-    // Get members for a workspace mapped to DTOs (clean JSON)
-    public List<WorkspaceMemberDTO> getWorkspaceMembersDTO(Long workspaceId) {
-        return memberRepository.findAllByWorkspaceId(workspaceId)
+    // Get all workspace members (for admin/testing)
+    public List<WorkspaceMemberDTO> getAllMembersDTO() {
+        return memberRepo.findAll()
                 .stream()
-                .map(member -> new WorkspaceMemberDTO(
-                        member.getUser().getName(),
-                        member.getUser().getEmail(),
-                        member.getRole(),
-                        member.getWorkspace().getName()
-                ))
-                .toList();
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
-    // Remove member from workspace (owner-only)
-    public void removeMember(Long workspaceId, Long memberId, Long requesterId) {
-        // Step 1: Check if requester is the workspace owner
-        Workspace workspace = workspaceRepository.findById(workspaceId)
-                .orElseThrow(() -> new RuntimeException("Workspace not found"));
+    // Get members of a specific workspace
+    public List<WorkspaceMemberDTO> getWorkspaceMembersDTO(Long workspaceId) {
+        return memberRepo.findByWorkspaceId(workspaceId)
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
 
-        if (!workspace.getOwner().getId().equals(requesterId)) {
-            throw new RuntimeException("Only the workspace owner can remove members");
+    // Add member (only owner can add)
+    public WorkspaceMember addMemberFromDTO(Long workspaceId, Long requesterId, WorkspaceMemberDTO dto) {
+        Workspace workspace = workspaceRepo.findById(workspaceId)
+                .orElseThrow(() -> new RuntimeException("Workspace not found"));
+        User requester = userRepo.findById(requesterId)
+                .orElseThrow(() -> new RuntimeException("Requester not found"));
+
+        if (!workspace.getOwner().getId().equals(requester.getId())) {
+            throw new RuntimeException("Only workspace owner can add members");
         }
 
-        // Step 2: Find member to remove
-        WorkspaceMember member = memberRepository
-                .findByUserIdAndWorkspaceId(memberId, workspaceId)
-                .orElseThrow(() -> new RuntimeException("Member not found in workspace"));
+        User user = userRepo.findById(dto.getUserId())
+                .orElseThrow(() -> new RuntimeException("User to add not found"));
 
-        // Step 3: Delete member
-        memberRepository.delete(member);
+        if (memberRepo.existsByWorkspaceAndUser(workspace, user)) {
+            throw new RuntimeException("User is already a member of this workspace");
+        }
+
+        WorkspaceMember member = new WorkspaceMember();
+        member.setWorkspace(workspace);
+        member.setUser(user);
+        member.setRole(dto.getRole() != null ? dto.getRole() : "member");
+
+        return memberRepo.save(member);
+    }
+
+    // Remove member (only owner can remove)
+    public void removeMember(Long workspaceId, Long memberUserId, Long requesterId) {
+        Workspace workspace = workspaceRepo.findById(workspaceId)
+                .orElseThrow(() -> new RuntimeException("Workspace not found"));
+        User requester = userRepo.findById(requesterId)
+                .orElseThrow(() -> new RuntimeException("Requester not found"));
+
+        if (!workspace.getOwner().getId().equals(requester.getId())) {
+            throw new RuntimeException("Only workspace owner can remove members");
+        }
+
+        WorkspaceMember member = memberRepo.findByUserIdAndWorkspaceId(memberUserId, workspaceId)
+                .orElseThrow(() -> new RuntimeException("Member not found in this workspace"));
+
+        memberRepo.delete(member);
     }
 }

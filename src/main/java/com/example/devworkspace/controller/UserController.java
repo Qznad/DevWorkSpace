@@ -1,31 +1,32 @@
 package com.example.devworkspace.controller;
 
+import com.example.devworkspace.dto.UserRequestDto;
+import com.example.devworkspace.dto.UserResponseDto;
 import com.example.devworkspace.entity.User;
 import com.example.devworkspace.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/users")
 public class UserController {
 
-    private final UserService userService;
-    public UserController(UserService userService) {
-        this.userService = userService;
+    @Autowired
+    private UserService userService;
+
+    @PostMapping("/register")
+    public UserResponseDto registerUser(@RequestBody UserRequestDto userDto) {
+        return userService.registerUser(userDto);
     }
 
-    @PostMapping
-    public User createUser(@RequestBody User user) {
-        return userService.createUser(user);
+    @PostMapping("/login")
+    public UserResponseDto loginUser(@RequestBody UserRequestDto userDto) {
+        return userService.loginUser(userDto.getEmail(), userDto.getPassword());
     }
-
-    @GetMapping
-    public List<User> getAllUsers() {
+    @GetMapping("/users")
+    public List<UserResponseDto> getAllUsers() {
         return userService.getAllUsers();
-    }
-
-    @GetMapping("/{id}")
-    public User getUserById(@PathVariable Long id) {
-        return userService.getUserById(id);
     }
 }

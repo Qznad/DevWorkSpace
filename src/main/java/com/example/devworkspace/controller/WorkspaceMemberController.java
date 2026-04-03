@@ -9,55 +9,54 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/workspace-members")
+@RequestMapping("/workspaces")
 public class WorkspaceMemberController {
 
-    private final WorkspaceMemberService service;
+    private final WorkspaceMemberService memberService;
 
-    public WorkspaceMemberController(WorkspaceMemberService service) {
-        this.service = service;
+    public WorkspaceMemberController(WorkspaceMemberService memberService) {
+        this.memberService = memberService;
     }
 
+    // Get all members (admin/testing)
+    @GetMapping("/members")
+    public ResponseEntity<List<WorkspaceMemberDTO>> getAllMembers() {
+        return ResponseEntity.ok(memberService.getAllMembersDTO());
+    }
 
-    @PostMapping
-    public ResponseEntity<?> addMember(@RequestBody WorkspaceMember member,
-                                       @RequestParam Long requesterId) {
-        WorkspaceMember result = service.addMember(member, requesterId);
+    // Get members of a specific workspace
+    @GetMapping("/{workspaceId}/members")
+    public ResponseEntity<List<WorkspaceMemberDTO>> getWorkspaceMembers(@PathVariable Long workspaceId) {
+        return ResponseEntity.ok(memberService.getWorkspaceMembersDTO(workspaceId));
+    }
 
-        if (result.getId().equals(member.getId())) {
-            // New member added
-            return ResponseEntity.ok("New member added to workspace");
-        } else {
-            // User was already in workspace
-            return ResponseEntity.ok("User already in workspace");
+    // Add member to workspace (owner-only)
+    @PostMapping("/{workspaceId}/members")
+    public ResponseEntity<?> addMember(
+            @PathVariable Long workspaceId,
+            @RequestParam Long requesterId,
+            @RequestBody WorkspaceMemberDTO memberDTO
+    ) {
+        try {
+            memberService.addMemberFromDTO(workspaceId, requesterId, memberDTO);
+            return ResponseEntity.ok("New member added successfully");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
         }
     }
 
-    @GetMapping
-    public List<WorkspaceMember> getAllMembers() {
-        return service.getAllMembers();
-    }
-
-    //You hit /workspace/1/members
-    //
-    //Spring calls getMembers()
-    //
-    //This method calls the service, which maps all members to DTOs
-    //
-    //You get a clean JSON response
-
-    @GetMapping("/workspace/{id}/members")
-    public List<WorkspaceMemberDTO> getMembers(@PathVariable Long id) {
-        return service.getWorkspaceMembersDTO(id);
-    }
-
-    @DeleteMapping("/workspace/{workspaceId}/member/{userId}")
-    public ResponseEntity<String> removeMember(
+    // Remove member from workspace (owner-only)
+    @DeleteMapping("/{workspaceId}/members/{memberUserId}")
+    public ResponseEntity<?> removeMember(
             @PathVariable Long workspaceId,
-            @PathVariable Long userId,
-            @RequestParam Long requesterId) {
-        service.removeMember(workspaceId, userId, requesterId);
-        return ResponseEntity.ok("Member removed successfully");
+            @PathVariable Long memberUserId,
+            @RequestParam Long requesterId
+    ) {
+        try {
+            memberService.removeMember(workspaceId, memberUserId, requesterId);
+            return ResponseEntity.ok("Member removed successfully");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
     }
-
 }
