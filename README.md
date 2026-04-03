@@ -129,11 +129,6 @@ DELETE /messages/{messageId}?requesterId=2 # delete own message
 - Members can send messages and delete their own messages
 - Deleting a workspace or channel cascades to delete associated members, channels, and messages
 
-4. **Testing**
-You can test all endpoints using:
-- *Postman* or *Insomnia*
-- *Automated JUnit* + *Spring Boot tests*
-
 
 ## License
 
