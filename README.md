@@ -86,44 +86,6 @@ Base URL: http://localhost:8080
 |                | DELETE | `/messages/{messageId}?requesterId={userId}`                         | -                                       | Only sender can delete             |
 
 
-
-# DevWorkSpace
-
-A collaborative workspace application built with **Spring Boot** (Java) for backend. Supports users, workspaces, channels, messages, and file management.
-
-## Features
-
-### Users
-- Register and login
-- View all users
-- Manage workspaces
-
-### Workspaces
-- Create and manage workspaces (owner-only)
-- Add or remove members (owner-only)
-- Workspace members have roles: `owner` or `member`
-
-### Channels
-- Create channels inside a workspace (owner-only)
-- Delete channels (owner-only)
-- List all channels in a workspace
-
-### Messages
-- Send messages in a channel (all members)
-- Delete own messages
-- Messages are tied to channels and users
-
-### Database Structure
-- PostgreSQL database with the following tables:
-  - `users`
-  - `workspaces`
-  - `workspace_members`
-  - `channels`
-  - `messages`
-  - `assignments`
-  - `files`
-  - `announcements`
-
 ### Example API Endpoints
 
 #### Users
