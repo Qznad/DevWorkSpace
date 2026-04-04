@@ -68,75 +68,66 @@ Base URL: http://localhost:8080
 ```
 
 **API Endpoints**
-| Method   | Endpoint                                                                      | Description                     |
-| -------- | ----------------------------------------------------------------------------- | ------------------------------- |
-| `GET`    | `/workspace-members/workspace/{id}/members`                                   | List all members of a workspace |
-| `POST`   | `/workspace-members?requesterId={id}`                                         | Add a member (owner-only)       |
-| `DELETE` | `/workspace-members/workspace/{workspaceId}/member/{userId}?requesterId={id}` | Remove a member (owner-only)    |
-| `GET`    | `/workspace-members`                                                          | List all workspace members      |
+| Resource       | Method | Endpoint                                                             | Request Params / Body                   | Permissions / Notes                |
+| -------------- | ------ | -------------------------------------------------------------------- | --------------------------------------- | ---------------------------------- |
+| **Users**      | POST   | `/api/users/register`                                                | Body: `{ "name", "email", "password" }` | Anyone                             |
+|                | POST   | `/api/users/login`                                                   | Body: `{ "email", "password" }`         | Anyone                             |
+|                | GET    | `/api/users`                                                         | -                                       | Admin / All users (optional)       |
+| **Workspaces** | POST   | `/workspaces`                                                        | Body: `{ "name" }`                      | Only logged-in user; becomes owner |
+|                | GET    | `/workspaces`                                                        | -                                       | All logged-in users                |
+|                | GET    | `/workspaces/{id}/members`                                           | -                                       | Only workspace members             |
+|                | POST   | `/workspaces/{id}/members?requesterId={userId}`                      | Body: `{ "userId", "role" }`            | Only owner                         |
+|                | DELETE | `/workspaces/{id}/members/{memberId}?requesterId={userId}`           | -                                       | Only owner                         |
+| **Channels**   | POST   | `/channels/workspace/{workspaceId}?requesterId={userId}&name={name}` | -                                       | Only workspace owner               |
+|                | GET    | `/channels/workspace/{workspaceId}`                                  | -                                       | Workspace members                  |
+|                | DELETE | `/channels/{channelId}?requesterId={userId}`                         | -                                       | Only workspace owner               |
+| **Messages**   | POST   | `/messages/channel/{channelId}?senderId={userId}&content={text}`     | -                                       | Workspace members                  |
+|                | GET    | `/messages/channel/{channelId}`                                      | -                                       | Workspace members                  |
+|                | DELETE | `/messages/{messageId}?requesterId={userId}`                         | -                                       | Only sender can delete             |
 
 
-****Example Requests****
-***Add Member (POST)***
-``` http
-POST /workspace-members?requesterId=1
-Content-Type: application/json
+### Example API Endpoints
 
-{
-  "user": {
-    "id": 3,
-    "name": "Yassine",
-    "email": "yassine@test.com"
-  },
-  "workspace": {
-    "id": 1
-  },
-  "role": "member"
-}
-```
-Expected Response (if requester is owner)
-```json
-"New member added to workspace"
-```
-Expected Response (if requester is not owner)
-```json
-{
-  "error": "Only owner can add members"
-}
-```
-***Remove Member (DELETE)***
-``` http
-DELETE /workspace-members/workspace/1/member/3?requesterId=1
-```
-Expected Response
-```json
-"Member removed successfully"
-```
-***List Members (GET)***
-``` http
-GET /workspace-members/workspace/1/members
-```
-Response:
-```json
-[
-  {
-    "userName": "Alice",
-    "userEmail": "alice@example.com",
-    "role": "owner",
-    "workspaceName": "Team Alpha"
-  },
-  {
-    "userName": "Yassine",
-    "userEmail": "yassine@test.com",
-    "role": "member",
-    "workspaceName": "Team Alpha"
-  }
-]
-```
-4. **Testing**
-You can test all endpoints using:
-- *Postman* or *Insomnia*
-- *Automated JUnit* + *Spring Boot tests*
+#### Users
+
+POST /api/users/register
+POST /api/users/login
+GET /api/users
+
+
+#### Workspaces
+
+POST /workspaces # create workspace
+GET /workspaces # list workspaces
+GET /workspaces/{id}/members # list workspace members
+POST /workspaces/{id}/members # add member
+DELETE /workspaces/{id}/members/{memberId} # remove member
+
+
+#### Channels
+
+POST /channels/workspace/{workspaceId}?requesterId=1&name=general
+GET /channels/workspace/{workspaceId}
+DELETE /channels/{channelId}?requesterId=1
+
+
+#### Messages
+
+POST /messages/channel/{channelId}?senderId=2&content=Hello
+GET /messages/channel/{channelId}
+DELETE /messages/{messageId}?requesterId=2 # delete own message
+
+
+## How to Run
+1. Clone the repository
+2. Configure `application.properties` for your database
+3. Run the Spring Boot application
+4. Use Postman or frontend to interact with APIs
+
+## Notes
+- Only workspace owners can create channels or manage members
+- Members can send messages and delete their own messages
+- Deleting a workspace or channel cascades to delete associated members, channels, and messages
 
 
 ## License
