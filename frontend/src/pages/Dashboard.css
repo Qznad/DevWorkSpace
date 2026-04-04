@@ -1,0 +1,153 @@
+:root {
+  --primary: #5865f2;
+  --background: #1e1e2f;
+  --sidebar-bg: #2f2f42;
+  --card-bg: rgba(255, 255, 255, 0.05);
+  --card-hover: rgba(88, 101, 242, 0.2);
+  --text-color: #fff;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--background);
+  color: var(--text-color);
+}
+
+.dashboard-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.workspace-sidebar {
+  width: 80px;
+  background-color: var(--sidebar-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 0;
+}
+
+.workspace-sidebar h3 {
+  display: none; /* optional, small sidebar */
+}
+
+.workspace-icons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.workspace-icon-circle {
+  width: 50px;
+  height: 50px;
+  background-color: var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.3s;
+}
+
+.workspace-icon-circle:hover {
+  transform: scale(1.1);
+  background-color: #4752c4;
+}
+
+/* Main area */
+.dashboard-main {
+  flex: 1;
+  padding: 2rem;
+}
+
+.create-workspace {
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.create-workspace input {
+  flex: 1;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+}
+
+.create-workspace button {
+  background-color: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.create-workspace button:hover {
+  background-color: #4752c4;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.workspace-card {
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  padding: 1rem;
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.2s, background-color 0.3s;
+}
+
+.workspace-card:hover {
+  background-color: var(--card-hover);
+  transform: translateY(-3px);
+}
+
+.workspace-icon-circle-large {
+  width: 60px;
+  height: 60px;
+  background-color: var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.5rem auto;
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+.workspace-name {
+  font-size: 1rem;
+}
+/* small delete X in sidebar */
+.workspace-delete-btn {
+  color: #f84c4c;
+  font-weight: bold;
+  margin-left: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.workspace-delete-btn,
+.workspace-delete-btn-large {
+  color: red;
+  font-weight: bold;
+  margin-left: 5px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.workspace-icon-circle:hover .workspace-delete-btn,
+.workspace-icon-circle-large:hover .workspace-delete-btn-large {
+  opacity: 1;
+}

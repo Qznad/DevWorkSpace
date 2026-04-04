@@ -1,5 +1,6 @@
 package com.example.devworkspace.controller;
 
+import com.example.devworkspace.dto.WorkspaceDto;
 import com.example.devworkspace.entity.User;
 import com.example.devworkspace.entity.Workspace;
 import com.example.devworkspace.service.UserService;
@@ -13,17 +14,17 @@ import java.util.List;
 public class WorkspaceController {
 
     private final WorkspaceService workspaceService;
-    private final UserService userService; // to get user by ID or email
+    private final UserService userService;
 
     public WorkspaceController(WorkspaceService workspaceService, UserService userService) {
         this.workspaceService = workspaceService;
         this.userService = userService;
     }
 
-    // Create a workspace (the creator becomes the owner/admin)
+    // Create workspace
     @PostMapping
     public Workspace createWorkspace(@RequestParam Long ownerId, @RequestParam String name) {
-        User owner = userService.getUserById(ownerId); // fetch user
+        User owner = userService.getUserById(ownerId);
         return workspaceService.createWorkspace(owner, name);
     }
 
@@ -33,9 +34,15 @@ public class WorkspaceController {
         return workspaceService.getAllWorkspaces();
     }
 
-    // Get a single workspace by ID
+    // Get workspace by ID
     @GetMapping("/{id}")
     public Workspace getWorkspace(@PathVariable Long id) {
         return workspaceService.getWorkspaceById(id);
+    }
+
+    // Get workspaces for a user (DTO)
+    @GetMapping("/userworkspaces/{userId}")
+    public List<WorkspaceDto> getUserWorkspaces(@PathVariable Long userId) {
+        return workspaceService.getWorkspacesForUser(userId);
     }
 }

@@ -5,6 +5,7 @@ import com.example.devworkspace.entity.Workspace;
 import com.example.devworkspace.entity.WorkspaceMember;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,4 +28,6 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
 
     // Get all members of a workspace
     List<WorkspaceMember> findByWorkspaceId(Long workspaceId);
+    // Get all workspace memberships for a specific user
+    List<WorkspaceMember> findByUserId(Long userId);
 }

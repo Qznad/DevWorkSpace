@@ -1,6 +1,8 @@
 package com.example.devworkspace.controller;
 
+import com.example.devworkspace.dto.WorkspaceDto;
 import com.example.devworkspace.dto.WorkspaceMemberDTO;
+import com.example.devworkspace.entity.Workspace;
 import com.example.devworkspace.entity.WorkspaceMember;
 import com.example.devworkspace.service.WorkspaceMemberService;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:3000") // <--- allow your React dev server
 @RequestMapping("/workspaces")
 public class WorkspaceMemberController {
 
@@ -55,6 +58,15 @@ public class WorkspaceMemberController {
         try {
             memberService.removeMember(workspaceId, memberUserId, requesterId);
             return ResponseEntity.ok("Member removed successfully");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
+    }
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<?> getUserWorkspaces(@PathVariable Long userId) {
+        try {
+            List<WorkspaceDto> workspaces = memberService.getWorkspacesForUserDTO(userId);
+            return ResponseEntity.ok(workspaces);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
         }

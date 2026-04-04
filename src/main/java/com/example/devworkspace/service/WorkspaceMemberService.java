@@ -1,5 +1,6 @@
 package com.example.devworkspace.service;
 
+import com.example.devworkspace.dto.WorkspaceDto;
 import com.example.devworkspace.dto.WorkspaceMemberDTO;
 import com.example.devworkspace.entity.User;
 import com.example.devworkspace.entity.Workspace;
@@ -95,5 +96,26 @@ public class WorkspaceMemberService {
                 .orElseThrow(() -> new RuntimeException("Member not found in this workspace"));
 
         memberRepo.delete(member);
+    }
+    // Import your DTO
+
+    public List<WorkspaceDto> getUserWorkspaceDtos(Long userId) {
+        List<WorkspaceMember> memberships = memberRepo.findByUserId(userId);
+        return memberships.stream()
+                .map(wsMember -> {
+                    Workspace ws = wsMember.getWorkspace();
+                    return new WorkspaceDto(ws.getId(), ws.getName(), ws.getOwner());
+                })
+                .toList();
+    }
+
+    public List<WorkspaceDto> getWorkspacesForUserDTO(Long userId) {
+        List<WorkspaceMember> memberships = memberRepo.findByUserId(userId);
+        return memberships.stream()
+                .map(member -> {
+                    Workspace ws = member.getWorkspace();
+                    return new WorkspaceDto(ws.getId(), ws.getName(), ws.getOwner());
+                })
+                .toList();
     }
 }
