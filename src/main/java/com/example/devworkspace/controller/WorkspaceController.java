@@ -5,6 +5,7 @@ import com.example.devworkspace.entity.User;
 import com.example.devworkspace.entity.Workspace;
 import com.example.devworkspace.service.UserService;
 import com.example.devworkspace.service.WorkspaceService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,6 +27,25 @@ public class WorkspaceController {
     public Workspace createWorkspace(@RequestParam Long ownerId, @RequestParam String name) {
         User owner = userService.getUserById(ownerId);
         return workspaceService.createWorkspace(owner, name);
+    }
+
+    // Inside WorkspaceController.java
+
+    // Delete workspace (owner only)
+    @DeleteMapping("/{workspaceId}")
+    public ResponseEntity<String> deleteWorkspace(
+            @PathVariable Long workspaceId,
+            @RequestParam Long userId) {
+
+        User user = userService.getUserById(userId);           // get requesting user
+        Workspace ws = workspaceService.getWorkspaceById(workspaceId);
+
+        if (!ws.getOwner().getId().equals(user.getId())) {
+            return ResponseEntity.status(403).body("Only owner can delete this workspace");
+        }
+
+        workspaceService.deleteWorkspace(workspaceId);
+        return ResponseEntity.ok("Workspace deleted successfully");
     }
 
     // Get all workspaces

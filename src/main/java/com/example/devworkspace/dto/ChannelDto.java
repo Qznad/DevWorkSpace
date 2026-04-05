@@ -5,6 +5,15 @@ public class ChannelDto {
     private String name;
     private Long workspaceId;
 
+    public ChannelDto(Long id, String name, Long workspaceId) {
+        this.id = id;
+        this.name = name;
+        this.workspaceId = workspaceId;
+    }
+
+    public ChannelDto() {
+    }
+
     // Getters & Setters
     public Long getId() {
         return id;

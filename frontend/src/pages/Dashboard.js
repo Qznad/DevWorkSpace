@@ -1,23 +1,31 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import workspaceService from "../services/wss";
+import { getCurrentUser } from "../services/auth"; // make sure you have this helper
 import "./Dashboard.css";
 
-const currentUser = {
-  id: 2,
-  name: "Bob",
-  email: "bob@example.com",
-};
-
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(null);
   const [workspaces, setWorkspaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
-  const navigate = useNavigate();
 
-  // Fetch user workspaces
+  // Load current user from localStorage
   useEffect(() => {
+    const user = getCurrentUser();
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    setCurrentUser(user);
+  }, [navigate]);
+
+  // Fetch workspaces after user is loaded
+  useEffect(() => {
+    if (!currentUser) return;
+
     const fetchWorkspaces = async () => {
       try {
         setLoading(true);
@@ -27,13 +35,14 @@ export default function Dashboard() {
         console.error(err);
         setError("Failed to load workspaces.");
       } finally {
-        setLoading(false);
+        setLoading(false); // ✅ stop infinite loading
       }
     };
-    fetchWorkspaces();
-  }, []);
 
-  // Create workspace
+    fetchWorkspaces();
+  }, [currentUser]);
+
+  // Create new workspace
   const handleCreateWorkspace = async () => {
     if (!newWorkspaceName.trim()) return alert("Workspace name cannot be empty.");
     try {
@@ -41,14 +50,7 @@ export default function Dashboard() {
         currentUser.id,
         newWorkspaceName.trim()
       );
-      // Convert to DTO structure if needed
-      const workspaceDto = {
-        id: workspace.id,
-        name: workspace.name,
-        ownerName: currentUser.name,
-        ownerEmail: currentUser.email,
-      };
-      setWorkspaces([...workspaces, workspaceDto]);
+      setWorkspaces([...workspaces, workspace]);
       setNewWorkspaceName("");
     } catch (err) {
       console.error(err);
@@ -57,21 +59,28 @@ export default function Dashboard() {
   };
 
   // Delete workspace
-  const handleDeleteWorkspace = async (workspaceId) => {
+  const handleDeleteWorkspace = async (workspaceId, ownerEmail) => {
+    if (ownerEmail !== currentUser.email) {
+      alert("Only the owner can delete this workspace.");
+      return;
+    }
     if (!window.confirm("Are you sure you want to delete this workspace?")) return;
+
     try {
       await workspaceService.deleteWorkspace(workspaceId, currentUser.id);
       setWorkspaces(workspaces.filter((ws) => ws.id !== workspaceId));
     } catch (err) {
       console.error(err);
-      alert("Failed to delete workspace. Only the owner can delete it.");
+      alert("Failed to delete workspace.");
     }
   };
+
+  // Protect rendering until currentUser is loaded
+  if (!currentUser) return null;
 
   return (
     <div className="dashboard-layout">
       <aside className="workspace-sidebar">
-        <h3>Workspaces</h3>
         <div className="workspace-icons">
           {workspaces.map((ws) => (
             <div
@@ -81,13 +90,12 @@ export default function Dashboard() {
               onClick={() => navigate(`/workspace/${ws.id}`)}
             >
               {ws.name[0].toUpperCase()}
-
               {ws.ownerEmail === currentUser.email && (
                 <span
                   className="workspace-delete-btn"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDeleteWorkspace(ws.id);
+                    handleDeleteWorkspace(ws.id, ws.ownerEmail);
                   }}
                 >
                   ×
@@ -127,13 +135,12 @@ export default function Dashboard() {
               >
                 <div className="workspace-icon-circle-large">
                   {ws.name[0].toUpperCase()}
-
                   {ws.ownerEmail === currentUser.email && (
                     <span
                       className="workspace-delete-btn-large"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteWorkspace(ws.id);
+                        handleDeleteWorkspace(ws.id, ws.ownerEmail);
                       }}
                     >
                       ×

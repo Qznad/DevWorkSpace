@@ -23,10 +23,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 
+    // WebSocket support
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
     // PostgreSQL driver
     runtimeOnly 'org.postgresql:postgresql'
 
-    // Lombok (optional, reduces boilerplate)
+    // Lombok (optional)
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 

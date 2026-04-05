@@ -2,16 +2,16 @@ package com.example.devworkspace.controller;
 
 import com.example.devworkspace.dto.WorkspaceDto;
 import com.example.devworkspace.dto.WorkspaceMemberDTO;
-import com.example.devworkspace.entity.Workspace;
-import com.example.devworkspace.entity.WorkspaceMember;
+import com.example.devworkspace.entity.User;
 import com.example.devworkspace.service.WorkspaceMemberService;
+import com.example.devworkspace.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:3000") // <--- allow your React dev server
+@CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/workspaces")
 public class WorkspaceMemberController {
 
@@ -21,34 +21,34 @@ public class WorkspaceMemberController {
         this.memberService = memberService;
     }
 
-    // Get all members (admin/testing)
-    @GetMapping("/members")
-    public ResponseEntity<List<WorkspaceMemberDTO>> getAllMembers() {
-        return ResponseEntity.ok(memberService.getAllMembersDTO());
-    }
-
-    // Get members of a specific workspace
+    // Get members of a workspace
     @GetMapping("/{workspaceId}/members")
     public ResponseEntity<List<WorkspaceMemberDTO>> getWorkspaceMembers(@PathVariable Long workspaceId) {
         return ResponseEntity.ok(memberService.getWorkspaceMembersDTO(workspaceId));
     }
 
-    // Add member to workspace (owner-only)
+    // Add member to workspace (owner only)
     @PostMapping("/{workspaceId}/members")
     public ResponseEntity<?> addMember(
             @PathVariable Long workspaceId,
-            @RequestParam Long requesterId,
-            @RequestBody WorkspaceMemberDTO memberDTO
+            @RequestBody AddMemberRequest request
     ) {
         try {
-            memberService.addMemberFromDTO(workspaceId, requesterId, memberDTO);
-            return ResponseEntity.ok("New member added successfully");
+            System.out.println("Request to add member: " + request.getEmail() + " by requester: " + request.getRequesterId());
+            WorkspaceMemberDTO newMember = memberService.addMemberByEmail(
+                    workspaceId,
+                    request.getRequesterId(),
+                    request.getEmail(),
+                    request.getRole()
+            );
+            return ResponseEntity.ok(newMember);
         } catch (RuntimeException e) {
+            e.printStackTrace();
             return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
         }
     }
 
-    // Remove member from workspace (owner-only)
+    // Remove member
     @DeleteMapping("/{workspaceId}/members/{memberUserId}")
     public ResponseEntity<?> removeMember(
             @PathVariable Long workspaceId,
@@ -62,13 +62,21 @@ public class WorkspaceMemberController {
             return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
         }
     }
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<?> getUserWorkspaces(@PathVariable Long userId) {
-        try {
-            List<WorkspaceDto> workspaces = memberService.getWorkspacesForUserDTO(userId);
-            return ResponseEntity.ok(workspaces);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
-        }
+
+    // DTO for POST request
+    public static class AddMemberRequest {
+        private Long requesterId;
+        private String email;
+        private String role; // optional
+
+        // getters and setters
+        public Long getRequesterId() { return requesterId; }
+        public void setRequesterId(Long requesterId) { this.requesterId = requesterId; }
+
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+
+        public String getRole() { return role; }
+        public void setRole(String role) { this.role = role; }
     }
 }

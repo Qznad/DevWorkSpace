@@ -7,6 +7,7 @@ import com.example.devworkspace.repository.WorkspaceRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class WorkspaceService {
@@ -22,6 +23,7 @@ public class WorkspaceService {
         Workspace ws = new Workspace();
         ws.setOwner(owner);
         ws.setName(name);
+        ws.getMembers().add(owner); // Owner is also a member
         return workspaceRepo.save(ws);
     }
 
@@ -36,11 +38,15 @@ public class WorkspaceService {
                 .orElseThrow(() -> new RuntimeException("Workspace not found"));
     }
 
-    // Get workspaces for a user (owner only for now)
+    // Get workspaces for a user (owner OR member)
     public List<WorkspaceDto> getWorkspacesForUser(Long userId) {
-        return workspaceRepo.findAll().stream()
-                .filter(ws -> ws.getOwner().getId().equals(userId))
+        return workspaceRepo.findAllByOwnerOrMemberId(userId).stream()
                 .map(ws -> new WorkspaceDto(ws.getId(), ws.getName(), ws.getOwner()))
-                .toList();
+                .collect(Collectors.toList());
+    }
+
+    // Delete workspace
+    public void deleteWorkspace(Long workspaceId) {
+        workspaceRepo.deleteById(workspaceId);
     }
 }

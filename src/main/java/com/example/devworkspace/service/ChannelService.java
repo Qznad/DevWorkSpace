@@ -2,7 +2,6 @@ package com.example.devworkspace.service;
 
 import com.example.devworkspace.dto.ChannelDto;
 import com.example.devworkspace.entity.Channel;
-import com.example.devworkspace.entity.User;
 import com.example.devworkspace.entity.Workspace;
 import com.example.devworkspace.repository.ChannelRepository;
 import com.example.devworkspace.repository.UserRepository;
@@ -27,7 +26,9 @@ public class ChannelService {
         this.userRepository = userRepository;
     }
 
+    // ----------------------------
     // Create channel (only workspace owner)
+    // ----------------------------
     public Channel createChannel(Long workspaceId, Long requesterId, String name) {
         Workspace workspace = workspaceRepository.findById(workspaceId)
                 .orElseThrow(() -> new RuntimeException("Workspace not found"));
@@ -43,7 +44,9 @@ public class ChannelService {
         return channelRepository.save(channel);
     }
 
+    // ----------------------------
     // Get all channels of a workspace
+    // ----------------------------
     public List<ChannelDto> getWorkspaceChannels(Long workspaceId) {
         return channelRepository.findByWorkspaceId(workspaceId)
                 .stream()
@@ -57,7 +60,9 @@ public class ChannelService {
                 .collect(Collectors.toList());
     }
 
+    // ----------------------------
     // Delete channel (owner-only)
+    // ----------------------------
     public void deleteChannel(Long channelId, Long requesterId) {
         Channel channel = channelRepository.findById(channelId)
                 .orElseThrow(() -> new RuntimeException("Channel not found"));
@@ -67,5 +72,13 @@ public class ChannelService {
         }
 
         channelRepository.delete(channel);
+    }
+
+    // ----------------------------
+    // Get a channel by ID (used for broadcasting)
+    // ----------------------------
+    public Channel getChannelById(Long channelId) {
+        return channelRepository.findById(channelId)
+                .orElseThrow(() -> new RuntimeException("Channel not found"));
     }
 }

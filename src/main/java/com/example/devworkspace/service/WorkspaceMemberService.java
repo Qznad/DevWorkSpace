@@ -20,10 +20,9 @@ public class WorkspaceMemberService {
     private final WorkspaceRepository workspaceRepo;
     private final UserRepository userRepo;
 
-    public WorkspaceMemberService(
-            WorkspaceMemberRepository memberRepo,
-            WorkspaceRepository workspaceRepo,
-            UserRepository userRepo) {
+    public WorkspaceMemberService(WorkspaceMemberRepository memberRepo,
+                                  WorkspaceRepository workspaceRepo,
+                                  UserRepository userRepo) {
         this.memberRepo = memberRepo;
         this.workspaceRepo = workspaceRepo;
         this.userRepo = userRepo;
@@ -39,15 +38,7 @@ public class WorkspaceMemberService {
         return dto;
     }
 
-    // Get all workspace members (for admin/testing)
-    public List<WorkspaceMemberDTO> getAllMembersDTO() {
-        return memberRepo.findAll()
-                .stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
-    }
-
-    // Get members of a specific workspace
+    // Get members of a workspace
     public List<WorkspaceMemberDTO> getWorkspaceMembersDTO(Long workspaceId) {
         return memberRepo.findByWorkspaceId(workspaceId)
                 .stream()
@@ -55,10 +46,11 @@ public class WorkspaceMemberService {
                 .collect(Collectors.toList());
     }
 
-    // Add member (only owner can add)
-    public WorkspaceMember addMemberFromDTO(Long workspaceId, Long requesterId, WorkspaceMemberDTO dto) {
+    // Add member by email
+    public WorkspaceMemberDTO addMemberByEmail(Long workspaceId, Long requesterId, String email, String role) {
         Workspace workspace = workspaceRepo.findById(workspaceId)
                 .orElseThrow(() -> new RuntimeException("Workspace not found"));
+
         User requester = userRepo.findById(requesterId)
                 .orElseThrow(() -> new RuntimeException("Requester not found"));
 
@@ -66,25 +58,30 @@ public class WorkspaceMemberService {
             throw new RuntimeException("Only workspace owner can add members");
         }
 
-        User user = userRepo.findById(dto.getUserId())
-                .orElseThrow(() -> new RuntimeException("User to add not found"));
+        User userToAdd = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
 
-        if (memberRepo.existsByWorkspaceAndUser(workspace, user)) {
+        if (memberRepo.existsByWorkspaceAndUser(workspace, userToAdd)) {
             throw new RuntimeException("User is already a member of this workspace");
         }
 
         WorkspaceMember member = new WorkspaceMember();
         member.setWorkspace(workspace);
-        member.setUser(user);
-        member.setRole(dto.getRole() != null ? dto.getRole() : "member");
+        member.setUser(userToAdd);
+        member.setRole(role != null && !role.isEmpty() ? role : "member");
 
-        return memberRepo.save(member);
+        WorkspaceMember savedMember = memberRepo.save(member);
+
+        System.out.println("Added member: " + userToAdd.getEmail() + " to workspace: " + workspace.getName());
+
+        return toDTO(savedMember);
     }
 
-    // Remove member (only owner can remove)
+    // Remove member
     public void removeMember(Long workspaceId, Long memberUserId, Long requesterId) {
         Workspace workspace = workspaceRepo.findById(workspaceId)
                 .orElseThrow(() -> new RuntimeException("Workspace not found"));
+
         User requester = userRepo.findById(requesterId)
                 .orElseThrow(() -> new RuntimeException("Requester not found"));
 
@@ -96,26 +93,6 @@ public class WorkspaceMemberService {
                 .orElseThrow(() -> new RuntimeException("Member not found in this workspace"));
 
         memberRepo.delete(member);
-    }
-    // Import your DTO
-
-    public List<WorkspaceDto> getUserWorkspaceDtos(Long userId) {
-        List<WorkspaceMember> memberships = memberRepo.findByUserId(userId);
-        return memberships.stream()
-                .map(wsMember -> {
-                    Workspace ws = wsMember.getWorkspace();
-                    return new WorkspaceDto(ws.getId(), ws.getName(), ws.getOwner());
-                })
-                .toList();
-    }
-
-    public List<WorkspaceDto> getWorkspacesForUserDTO(Long userId) {
-        List<WorkspaceMember> memberships = memberRepo.findByUserId(userId);
-        return memberships.stream()
-                .map(member -> {
-                    Workspace ws = member.getWorkspace();
-                    return new WorkspaceDto(ws.getId(), ws.getName(), ws.getOwner());
-                })
-                .toList();
+        System.out.println("Removed member: " + memberUserId + " from workspace: " + workspace.getName());
     }
 }
