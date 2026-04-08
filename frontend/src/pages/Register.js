@@ -12,7 +12,7 @@ function Register() {
     e.preventDefault();
 
     try {
-      const response = await API.post("/api/auth/register", {
+      const response = await API.post("/auth/register", {
         username,
         email,
         password,
