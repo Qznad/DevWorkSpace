@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dev Workspace - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: #0f0f0f;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ===== WORKSPACE SWITCHER ===== */
+        .workspace-switcher {
+            width: 72px;
+            background: #0a0a0a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 0;
+            gap: 12px;
+            border-right: 1px solid #2a2a2a;
+            overflow-y: auto;
+        }
+
+        .workspace-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            border: 2px solid transparent;
+        }
+
+        .workspace-icon:hover {
+            border-radius: 30%;
+            background: linear-gradient(135deg, #8b5cf6, #c084fc);
+        }
+
+        .workspace-icon.active {
+            border-color: #7c3aed;
+            border-radius: 30%;
+        }
+
+        .workspace-add {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px dashed #3a3a3a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .workspace-add:hover {
+            border-color: #7c3aed;
+            color: #7c3aed;
+        }
+
+        .workspace-switcher::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .workspace-switcher::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        .workspace-switcher::-webkit-scrollbar-thumb {
+            background: #2a2a2a;
+            border-radius: 2px;
+        }
+
+        .workspace-switcher::-webkit-scrollbar-thumb:hover {
+            background: #3a3a3a;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 260px;
+            background: #1e1e1e;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #2a2a2a;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 12px;
+        }
+
+        .user-section:hover {
+            background: #2a2a2a;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #7c3aed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .user-name {
+            color: #fff;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-status {
+            color: #888;
+            font-size: 11px;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            padding: 16px 12px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-title button {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .section-title button:hover {
+            color: #aaa;
+        }
+
+        .channel-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 0 8px;
+            margin-bottom: 16px;
+        }
+
+        .channel-item {
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #888;
+            font-size: 13px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .channel-item:hover {
+            background: #2a2a2a;
+            color: #aaa;
+        }
+
+        .channel-item.active {
+            background: #7c3aed;
+            color: white;
+        }
+
+        .channel-icon {
+            flex-shrink: 0;
+        }
+
+        .channel-name {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .channel-badge {
+            background: #7c3aed;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 600;
+            flex-shrink: 0;
+            display: none;
+        }
+
+        .channel-item.unread .channel-badge {
+            display: block;
+        }
+
+        .sidebar-footer {
+            padding: 12px;
+            border-top: 1px solid #2a2a2a;
+            display: flex;
+            gap: 8px;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .members-panel {
+            width: 260px;
+            background: #1e1e1e;
+            border-left: 1px solid #2a2a2a;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .members-panel.show {
+            display: flex;
+        }
+
+        .members-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            color: #888;
+            font-size: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+
+        .members-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .member-item:hover {
+            background: #2a2a2a;
+        }
+
+        .member-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .member-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .member-name {
+            font-size: 13px;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .member-status {
+            font-size: 11px;
+            color: #888;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .message-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .message-author {
+            font-weight: 500;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .message-text {
+            color: #ccc;
+            font-size: 14px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #888;
+            gap: 12px;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            opacity: 0.5;
+        }
+
+        .empty-state-text {
+            font-size: 14px;
+            text-align: center;
+        }
+
+        /* ===== MESSAGE INPUT ===== */
+        .input-section {
+            padding: 24px;
+            border-top: 1px solid #2a2a2a;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 24px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+            resize: none;
+            max-height: 100px;
+            font-family: inherit;
+        }
+
+        .message-input::placeholder {
+            color: #888;
+        }
+
+        .message-input:focus {
+            border-color: #7c3aed;
+            background: #2d2d2d;
+        }
+
+        .send-button {
+            padding: 8px 16px;
+            background: #7c3aed;
+            border: none;
+            border-radius: 24px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 100px;
+        }
+
+        .send-button:hover {
+            background: #6d28d9;
+        }
+
+        .send-button:active {
+            transform: scale(0.98);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0f0f0f;
+        }
+
+        .header {
+            padding: 16px 24px;
+            border-bottom: 1px solid #2a2a2a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-subtitle {
+            color: #888;
+            font-size: 12px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 12px;
+        }
+
+        .header-button {
+            padding: 8px 16px;
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 6px;
+            color: #888;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .header-button:hover {
+            background: #3a3a3a;
+            color: #aaa;
+        }
+
+        .footer-button {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            background: #2a2a2a;
+            color: #888;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .footer-button:hover {
+            background: #3a3a3a;
+            color: #aaa;
+        }
+
+        /* ===== NOTIFICATION SYSTEM ===== */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: none;
+        }
+
+        .notification {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 16px;
+            background: #1e1e1e;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            min-width: 320px;
+            max-width: 420px;
+            animation: slideIn 0.3s ease-out;
+            pointer-events: auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .notification::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: #7c3aed;
+            animation: progressBar 4s linear forwards;
+        }
+
+        .notification.success::before {
+            background: #10b981;
+        }
+
+        .notification.error::before {
+            background: #ef4444;
+        }
+
+        .notification.info::before {
+            background: #3b82f6;
+        }
+
+        @keyframes progressBar {
+            from {
+                width: 100%;
+            }
+            to {
+                width: 0%;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .notification.removing {
+            animation: slideOut 0.3s ease-out forwards;
+        }
+
+        .notification-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+        }
+
+        .notification.success .notification-icon {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .notification.error .notification-icon {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .notification.info .notification-icon {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .notification-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .notification-message {
+            color: #aaa;
+            font-size: 13px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .notification-close {
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .notification-close:hover {
+            color: #aaa;
+        }
+
+        .notification:hover::before {
+            animation-play-state: paused;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a4a4a;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+    </style>
+</head>
+<body>
+    <script src="data.js"></script>
+
+    <!-- NOTIFICATION CONTAINER -->
+    <div class="notification-container" id="notificationContainer"></div>
+
+    <!-- WORKSPACE SWITCHER -->
+    <div class="workspace-switcher" id="workspaceSwitcher">
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="user-section" onclick="toggleUserMenu()">
+                <div class="user-avatar" id="userAvatarShort">F</div>
+                <div class="user-info">
+                    <div class="user-name" id="userName">Loading...</div>
+                    <div class="user-status">Online</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-content">
+            <div class="section-title">
+                <span>Channels</span>
+                <button onclick="createChannel()">+</button>
+            </div>
+            <div class="channel-list" id="channelList"></div>
+
+            <div class="section-title">
+                <span>Direct Messages</span>
+                <button onclick="showNotification('Direct messages coming soon!', 'info')">+</button>
+            </div>
+            <div class="channel-list" id="dmList"></div>
+        </div>
+
+        <div class="sidebar-footer">
+            <button class="footer-button" onclick="showNotification('Settings coming soon!', 'info')">⚙️ Settings</button>
+            <button class="footer-button" id="logoutBtn" onclick="logout()">🚪 Logout</button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <div class="header">
+            <div class="header-left">
+                <div class="header-title">
+                    <span id="channelIcon">#</span>
+                    <div>
+                        <div id="channelName">Room Name</div>
+                        <div class="header-subtitle" id="channelMembers">24 members</div>
+                    </div>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="header-button">🔍 Search</button>
+                <button class="header-button" onclick="toggleMembers()">👥 Members</button>
+            </div>
+        </div>
+
+        <div style="display: flex; flex: 1; overflow: hidden;">
+            <div class="messages-container" id="messagesContainer">
+                <div class="empty-state">
+                    <div class="empty-state-icon">💬</div>
+                    <div class="empty-state-text">Select a channel to start chatting</div>
+                </div>
+            </div>
+
+            <!-- MEMBERS PANEL -->
+            <div class="members-panel" id="membersPanel">
+                <div class="members-header">
+                    <div style="font-weight: 600; color: #fff;">Members</div>
+                    <button onclick="toggleMembers()" style="background: none; border: none; color: #888; font-size: 18px; cursor: pointer;">✕</button>
+                </div>
+                <div class="members-list" id="membersList"></div>
+            </div>
+        </div>
+
+        <div class="input-section">
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    class="message-input" 
+                    id="messageInput" 
+                    placeholder="Type a message..." 
+                    onkeypress="handleKeyPress(event)"
+                    disabled
+                >
+                <button class="send-button" onclick="sendMessage()" id="sendBtn" disabled>Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentWorkspaceId = 1;
+        let currentChannelId = 1;
+
+        // ===== NOTIFICATION SYSTEM =====
+        const notificationIcons = {
+            success: '✔',
+            error: '✕',
+            info: 'ℹ'
+        };
+
+        const notificationTitles = {
+            success: 'Success',
+            error: 'Error',
+            info: 'Info'
+        };
+
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            const icon = notificationIcons[type] || notificationIcons.info;
+            const title = notificationTitles[type] || 'Notification';
+            
+            notification.innerHTML = `
+                <div class="notification-icon">${icon}</div>
+                <div class="notification-content">
+                    <div class="notification-title">${title}</div>
+                    <div class="notification-message">${message}</div>
+                </div>
+                <button class="notification-close" onclick="this.parentElement.remove()">✕</button>
+            `;
+
+            container.appendChild(notification);
+
+            // Auto remove after 4 seconds
+            const timeout = setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.classList.add('removing');
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 4000);
+
+            // Clear timeout on hover
+            notification.addEventListener('mouseenter', () => clearTimeout(timeout));
+            notification.addEventListener('mouseleave', () => {
+                const newTimeout = setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.classList.add('removing');
+                        setTimeout(() => notification.remove(), 300);
+                    }
+                }, 1000);
+            });
+
+            return notification;
+        }
+
+        function initializeDashboard() {
+            // Set current user
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.name;
+                const initials = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                document.getElementById('userAvatarShort').textContent = initials;
+            }
+
+            // Populate workspace switcher
+            loadWorkspaceSwitcher();
+
+            loadChannels();
+            loadDMs();
+        }
+
+        function loadWorkspaceSwitcher() {
+            const switcher = document.getElementById('workspaceSwitcher');
+            switcher.innerHTML = '';
+
+            userWorkspaces.forEach(ws => {
+                const div = document.createElement('div');
+                div.className = 'workspace-icon' + (ws.id === currentWorkspaceId ? ' active' : '');
+                div.onclick = () => switchToWorkspace(ws.id);
+                const initials = ws.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                div.textContent = initials;
+                div.title = ws.name;
+                switcher.appendChild(div);
+            });
+
+            // Add new workspace button
+            const addBtn = document.createElement('div');
+            addBtn.className = 'workspace-add';
+            addBtn.textContent = '+';
+            addBtn.onclick = createWorkspace;
+            addBtn.title = 'Create new workspace';
+            switcher.appendChild(addBtn);
+        }
+
+        function switchToWorkspace(workspaceId) {
+            currentWorkspaceId = workspaceId;
+            loadWorkspaceSwitcher();
+            loadChannels();
+        }
+
+        function switchWorkspace() {
+            // This function is replaced by switchToWorkspace
+        }
+
+        function loadChannels() {
+            const channelList = document.getElementById('channelList');
+            channelList.innerHTML = '';
+
+            const channels = workspaceChannels.filter(c => c.workspaceId === currentWorkspaceId);
+            
+            if (channels.length === 0) {
+                channelList.innerHTML = '<div style="color: #888; padding: 12px; font-size: 12px; text-align: center;">No channels</div>';
+                return;
+            }
+
+            channels.forEach(channel => {
+                const div = document.createElement('div');
+                div.className = 'channel-item' + (channel.id === currentChannelId ? ' active' : '');
+                div.onclick = () => selectChannel(channel);
+                div.innerHTML = `
+                    <span class="channel-icon">${channel.type === 'private' ? '🔒' : '#'}</span>
+                    <span class="channel-name">${channel.name}</span>
+                `;
+                channelList.appendChild(div);
+            });
+        }
+
+        function loadDMs() {
+            const dmList = document.getElementById('dmList');
+            dmList.innerHTML = '';
+
+            // Placeholder for direct messages
+            users.filter(u => u.id !== currentUser.id).slice(0, 3).forEach(user => {
+                const div = document.createElement('div');
+                div.className = 'channel-item';
+                div.onclick = () => showNotification(`Coming soon! Direct message with ${user.name}`, 'info');
+                const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                div.innerHTML = `
+                    <span class="channel-icon">👤</span>
+                    <span class="channel-name">${user.name}</span>
+                `;
+                dmList.appendChild(div);
+            });
+        }
+
+        function selectChannel(channel) {
+            currentChannelId = channel.id;
+            loadChannels();
+            displayChannel(channel);
+            loadMessages(channel.id);
+            loadMembers(channel.id);
+            closeMembersPanel();
+        }
+
+        function displayChannel(channel) {
+            document.getElementById('channelIcon').textContent = channel.type === 'private' ? '🔒' : '#';
+            document.getElementById('channelName').textContent = channel.name;
+            document.getElementById('channelMembers').textContent = `${channel.members || 0} members`;
+            
+            // Enable message input
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('messageInput').placeholder = `Message #${channel.name}`;
+        }
+
+        function loadMessages(channelId) {
+            const container = document.getElementById('messagesContainer');
+            const messages = channelMessages.filter(m => m.channelId === channelId);
+
+            if (messages.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div class="empty-state-text">No messages yet. Start the conversation!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            messages.forEach(msg => {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'message';
+                
+                const initials = msg.senderName.split(' ').map(n => n[0]).join('').toUpperCase();
+                const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                msgDiv.innerHTML = `
+                    <div class="message-avatar">${initials}</div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-author">${msg.senderName}</span>
+                            <span class="message-time">${time}</span>
+                        </div>
+                        <div class="message-text">${msg.content}</div>
+                    </div>
+                `;
+                
+                container.appendChild(msgDiv);
+            });
+
+            // Scroll to bottom
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 0);
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+
+            if (!content) return;
+
+            // Add message to UI
+            const container = document.getElementById('messagesContainer');
+            
+            if (container.innerHTML.includes('empty-state')) {
+                container.innerHTML = '';
+            }
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message';
+            
+            const initials = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            msgDiv.innerHTML = `
+                <div class="message-avatar" style="background: linear-gradient(135deg, #7c3aed, #a78bfa);">${initials}</div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="message-author">${currentUser.name}</span>
+                        <span class="message-time">${time}</span>
+                    </div>
+                    <div class="message-text">${content}</div>
+                </div>
+            `;
+            
+            container.appendChild(msgDiv);
+            input.value = '';
+
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+
+            // TODO: Send to backend
+            console.log('Sending message:', { channelId: currentChannelId, content });
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = '/auth.html';
+            }
+        }
+
+        function toggleMembersPanel() {
+            const panel = document.getElementById('membersPanel');
+            panel.classList.toggle('show');
+        }
+
+        function toggleMembers() {
+            toggleMembersPanel();
+        }
+
+        function closeMembersPanel() {
+            const panel = document.getElementById('membersPanel');
+            panel.classList.remove('show');
+        }
+
+        function loadMembers(channelId) {
+            const channel = workspaceChannels.find(c => c.id === channelId);
+            const membersList = document.getElementById('membersList');
+            membersList.innerHTML = '';
+
+            if (!channel) return;
+
+            const channelUsers = users.slice(0, channel.members || 3);
+
+            channelUsers.forEach(user => {
+                const div = document.createElement('div');
+                div.className = 'member-item';
+                const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                const status = user.id === currentUser.id ? 'You' : ['online', 'away', 'offline'][Math.floor(Math.random() * 3)];
+                
+                div.innerHTML = `
+                    <div class="member-avatar">${initials}</div>
+                    <div class="member-info">
+                        <div class="member-name">${user.name}</div>
+                        <div class="member-status">${status}</div>
+                    </div>
+                `;
+                membersList.appendChild(div);
+            });
+        }
+
+        function createChannel() {
+            const channelName = prompt('Enter channel name:');
+            if (!channelName || !channelName.trim()) return;
+
+            const newChannel = {
+                id: Math.max(...workspaceChannels.map(c => c.id), 0) + 1,
+                workspaceId: currentWorkspaceId,
+                name: channelName.trim().toLowerCase().replace(/\s+/g, '-'),
+                type: 'public',
+                members: 1
+            };
+
+            workspaceChannels.push(newChannel);
+            loadChannels();
+            showNotification('Channel created: #' + newChannel.name, 'success');
+        }
+
+        function createWorkspace() {
+            const workspaceName = prompt('Enter workspace name:');
+            if (!workspaceName || !workspaceName.trim()) return;
+
+            const newWorkspace = {
+                id: Math.max(...userWorkspaces.map(w => w.id), 0) + 1,
+                name: workspaceName.trim(),
+                ownerName: currentUser.name,
+                ownerEmail: currentUser.email,
+                members: 1
+            };
+
+            userWorkspaces.push(newWorkspace);
+            
+            // Add a general channel to the new workspace
+            workspaceChannels.push({
+                id: Math.max(...workspaceChannels.map(c => c.id), 0) + 1,
+                workspaceId: newWorkspace.id,
+                name: 'general',
+                type: 'public',
+                members: 1
+            });
+
+            // Reload workspace switcher and switch to new workspace
+            currentWorkspaceId = newWorkspace.id;
+            loadWorkspaceSwitcher();
+            loadChannels();
+            showNotification('Workspace created: ' + newWorkspace.name, 'success');
+        }
+
+        function toggleUserMenu() {
+            showNotification('User profile coming soon!', 'info');
+        }
+
+        // Initialize on load
+        window.addEventListener('load', initializeDashboard);
+    </script>
+</body>
+</html>

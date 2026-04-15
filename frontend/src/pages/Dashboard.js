@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import workspaceService from "../services/wss";
-import { getCurrentUser } from "../services/auth"; // make sure you have this helper
+import workspaceService from "../services/workspaceService";
+import { getCurrentUser } from "../services/auth";
 import "./Dashboard.css";
 
 export default function Dashboard() {
@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   // Load current user from localStorage
   useEffect(() => {
@@ -35,7 +36,7 @@ export default function Dashboard() {
         console.error(err);
         setError("Failed to load workspaces.");
       } finally {
-        setLoading(false); // ✅ stop infinite loading
+        setLoading(false);
       }
     };
 
@@ -43,8 +44,9 @@ export default function Dashboard() {
   }, [currentUser]);
 
   // Create new workspace
-  const handleCreateWorkspace = async () => {
-    if (!newWorkspaceName.trim()) return alert("Workspace name cannot be empty.");
+  const handleCreateWorkspace = async (e) => {
+    e.preventDefault();
+    if (!newWorkspaceName.trim()) return;
     try {
       const workspace = await workspaceService.createWorkspace(
         currentUser.id,
@@ -52,6 +54,7 @@ export default function Dashboard() {
       );
       setWorkspaces([...workspaces, workspace]);
       setNewWorkspaceName("");
+      setShowCreateForm(false);
     } catch (err) {
       console.error(err);
       alert("Failed to create workspace.");
@@ -75,83 +78,113 @@ export default function Dashboard() {
     }
   };
 
+  // Logout
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
   // Protect rendering until currentUser is loaded
   if (!currentUser) return null;
 
   return (
     <div className="dashboard-layout">
-      <aside className="workspace-sidebar">
-        <div className="workspace-icons">
-          {workspaces.map((ws) => (
-            <div
-              key={ws.id}
-              className="workspace-icon-circle"
-              title={ws.name}
-              onClick={() => navigate(`/workspace/${ws.id}`)}
-            >
-              {ws.name[0].toUpperCase()}
-              {ws.ownerEmail === currentUser.email && (
-                <span
-                  className="workspace-delete-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteWorkspace(ws.id, ws.ownerEmail);
-                  }}
-                >
-                  ×
-                </span>
-              )}
-            </div>
-          ))}
+      <header className="dashboard-header">
+        <div className="header-content">
+          <h1 className="header-title">Workspaces</h1>
+          <div className="header-actions">
+            <span className="user-info">👤 {currentUser.name}</span>
+            <button className="logout-btn" onClick={handleLogout}>Sign Out</button>
+          </div>
         </div>
-      </aside>
+      </header>
 
       <main className="dashboard-main">
-        <h2>Welcome, {currentUser.name}</h2>
+        <div className="dashboard-content">
+          {/* Create Workspace Section */}
+          {!showCreateForm && (
+            <button className="create-new-btn" onClick={() => setShowCreateForm(true)}>
+              + Create New Workspace
+            </button>
+          )}
 
-        <div className="create-workspace">
-          <input
-            type="text"
-            placeholder="New workspace name"
-            value={newWorkspaceName}
-            onChange={(e) => setNewWorkspaceName(e.target.value)}
-          />
-          <button onClick={handleCreateWorkspace}>Create Workspace</button>
-        </div>
-
-        {loading ? (
-          <p className="loading">Loading your workspaces...</p>
-        ) : error ? (
-          <p className="error">{error}</p>
-        ) : workspaces.length === 0 ? (
-          <p>You are not a member of any workspace yet.</p>
-        ) : (
-          <div className="workspace-grid">
-            {workspaces.map((ws) => (
-              <div
-                key={ws.id}
-                className="workspace-card"
-                onClick={() => navigate(`/workspace/${ws.id}`)}
-              >
-                <div className="workspace-icon-circle-large">
-                  {ws.name[0].toUpperCase()}
-                  {ws.ownerEmail === currentUser.email && (
-                    <span
-                      className="workspace-delete-btn-large"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteWorkspace(ws.id, ws.ownerEmail);
-                      }}
-                    >
-                      ×
-                    </span>
-                  )}
+          {showCreateForm && (
+            <div className="create-workspace-form-card">
+              <h2>Create New Workspace</h2>
+              <form onSubmit={handleCreateWorkspace}>
+                <input
+                  type="text"
+                  placeholder="Workspace name (e.g., Design Team, Marketing)"
+                  value={newWorkspaceName}
+                  onChange={(e) => setNewWorkspaceName(e.target.value)}
+                  autoFocus
+                  required
+                  className="workspace-input"
+                />
+                <div className="form-buttons">
+                  <button type="submit" className="btn-create">Create</button>
+                  <button type="button" className="btn-cancel" onClick={() => setShowCreateForm(false)}>
+                    Cancel
+                  </button>
                 </div>
-                <div className="workspace-name">{ws.name}</div>
+              </form>
+            </div>
+          )}
+
+          {/* Workspaces Section */}
+          <section className="workspaces-section">
+            <h2 className="section-title">Your Workspaces</h2>
+            
+            {loading ? (
+              <div className="state-message loading">⏳ Loading your workspaces...</div>
+            ) : error ? (
+              <div className="state-message error">❌ {error}</div>
+            ) : workspaces.length === 0 ? (
+              <div className="state-message empty">
+                <p>No workspaces yet</p>
+                <p className="empty-hint">Create your first workspace to get started</p>
               </div>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="workspace-grid">
+                {workspaces.map((ws) => (
+                  <div
+                    key={ws.id}
+                    className="workspace-card"
+                    onClick={() => navigate(`/workspace/${ws.id}`)}
+                  >
+                    <div className="card-header">
+                      <div className="workspace-avatar">
+                        {ws.name[0].toUpperCase()}
+                      </div>
+                      {ws.ownerEmail === currentUser.email && (
+                        <button
+                          className="delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteWorkspace(ws.id, ws.ownerEmail);
+                          }}
+                          title="Delete workspace (owner only)"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    <div className="card-body">
+                      <h3 className="workspace-card-name">{ws.name}</h3>
+                      <p className="workspace-owner">
+                        {ws.ownerEmail === currentUser.email ? "📌 You own this" : "👥 Member"}
+                      </p>
+                    </div>
+                    <div className="card-footer">
+                      <span className="btn-open">Open →</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
       </main>
     </div>
   );

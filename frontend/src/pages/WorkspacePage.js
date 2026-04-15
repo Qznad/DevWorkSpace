@@ -1,10 +1,25 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import channelService from "../services/cs";
-import workspaceService from "../services/wss";
-import memberService from "../services/ms";
+import workspaceService from "../services/workspaceService";
+import channelService from "../services/channelService";
+import memberService from "../services/memberService";
+import messageService from "../services/messageService";
+import announcementService from "../services/announcements";
+import assignmentService from "../services/assignments";
+import fileService from "../services/files";
+import userService from "../services/users";
 import { getCurrentUser } from "../services/auth";
-import axios from "axios";
+
+import WorkspaceHeader from "../components/WorkspaceHeader";
+import WorkspaceSwitcher from "../components/WorkspaceSwitcher";
+import ChannelSidebar from "../components/ChannelSidebar";
+import ChatPanel from "../components/ChatPanel";
+import RightPanel from "../components/RightPanel";
+import MemberPanel from "../components/MemberPanel";
+import AnnouncementPanel from "../components/AnnouncementPanel";
+import AssignmentPanel from "../components/AssignmentPanel";
+import FilePanel from "../components/FilePanel";
+
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import "./WorkspacePage.css";
@@ -13,118 +28,201 @@ export default function WorkspacePage() {
   const { workspaceId } = useParams();
   const navigate = useNavigate();
 
-  const messagesEndRef = useRef(null);
   const clientRef = useRef(null);
-  const channelSubscriptionRef = useRef(null);
-  const messageSubscriptionRef = useRef(null);
+  const channelSubRef = useRef(null);
+  const messageSubRef = useRef(null);
+  const memberSubRef = useRef(null);
+  const announcementSubRef = useRef(null);
+  const assignmentSubRef = useRef(null);
 
   const [currentUser, setCurrentUser] = useState(null);
   const [workspace, setWorkspace] = useState(null);
   const [channels, setChannels] = useState([]);
   const [members, setMembers] = useState([]);
+  const [users, setUsers] = useState([]);
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [assignments, setAssignments] = useState([]);
+  const [allFiles, setAllFiles] = useState([]);
+  const [messageAttachments, setMessageAttachments] = useState([]);
+  const [assignmentAttachments, setAssignmentAttachments] = useState([]);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [activeTab, setActiveTab] = useState("members");
+  const [fileContext, setFileContext] = useState("message");
+
   const [newMessage, setNewMessage] = useState("");
   const [newChannelName, setNewChannelName] = useState("");
   const [newMemberEmail, setNewMemberEmail] = useState("");
+  const [newAnnouncementTitle, setNewAnnouncementTitle] = useState("");
+  const [newAnnouncementContent, setNewAnnouncementContent] = useState("");
+  const [newAssignmentTitle, setNewAssignmentTitle] = useState("");
+  const [newAssignmentDescription, setNewAssignmentDescription] = useState("");
+  const [newAssignmentDue, setNewAssignmentDue] = useState("");
+  const [newFileName, setNewFileName] = useState("");
+  const [newFileUrl, setNewFileUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const isOwner = workspace?.ownerEmail === currentUser?.email;
 
-  // -------------------- Load current user --------------------
   useEffect(() => {
     const user = getCurrentUser();
-    if (!user) navigate("/login");
-    else setCurrentUser(user);
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    setCurrentUser(user);
   }, [navigate]);
 
-  // -------------------- Fetch workspace, channels, members --------------------
   useEffect(() => {
     if (!currentUser) return;
 
-    const fetchData = async () => {
+    const fetchWorkspaceData = async () => {
       try {
         setLoading(true);
         const wsList = await workspaceService.getUserWorkspaces(currentUser.id);
-        const ws = wsList.find((w) => w.id === parseInt(workspaceId));
+        const ws = wsList.find((w) => w.id === parseInt(workspaceId, 10));
         if (!ws) {
-          setError("Workspace not found or you don't have access.");
+          setError("Workspace not found.");
           return;
         }
         setWorkspace(ws);
 
-        const ch = await channelService.getChannels(workspaceId);
+        const [ch, mem, ann, assign, files, allUsers] = await Promise.all([
+          channelService.getChannels(workspaceId),
+          memberService.getWorkspaceMembers(workspaceId),
+          announcementService.getAllAnnouncements(),
+          assignmentService.getWorkspaceAssignments(workspaceId),
+          fileService.getAllFiles(),
+          userService.getAllUsers(),
+        ]);
+
         setChannels(ch);
         if (ch.length > 0) setSelectedChannel(ch[0]);
-
-        const mem = await memberService.getWorkspaceMembers(workspaceId);
         setMembers(mem);
+        setAnnouncements(ann.filter((item) => item.workspaceId === ws.id));
+        setAssignments(assign);
+        setAllFiles(files);
+        setUsers(allUsers);
       } catch (err) {
         console.error(err);
-        setError("Failed to load workspace data.");
+        setError("Failed to load workspace.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchWorkspaceData();
   }, [currentUser, workspaceId]);
 
-  // -------------------- Fetch messages --------------------
   useEffect(() => {
     if (!selectedChannel) return;
-
     const fetchMessages = async () => {
       try {
-        const res = await axios.get(
-          `http://localhost:8080/messages/channel/${selectedChannel.id}`
-        );
-        setMessages(res.data);
+        const data = await messageService.getMessages(selectedChannel.id);
+        setMessages(data);
       } catch (err) {
         console.error(err);
       }
     };
-
     fetchMessages();
   }, [selectedChannel]);
 
-  // -------------------- Initialize STOMP Client --------------------
   useEffect(() => {
     if (!currentUser) return;
     if (clientRef.current) return;
 
+    console.log('Initializing WebSocket client...');
     const client = new Client({
       webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
       reconnectDelay: 5000,
+      debug: (str) => console.log('WebSocket:', str),
     });
 
     client.onConnect = () => {
-      console.log("STOMP connected");
+      console.log('WebSocket connected successfully');
+      // Connection is now established, subscriptions will be set up when workspace data loads
+    };
 
-      // Subscribe to channels and messages
-      subscribeToChannels();
-      if (selectedChannel) subscribeToMessages(selectedChannel);
+    client.onStompError = (frame) => {
+      console.error('WebSocket STOMP error:', frame);
+    };
+
+    client.onWebSocketError = (error) => {
+      console.error('WebSocket error:', error);
     };
 
     client.activate();
     clientRef.current = client;
 
     return () => {
-      channelSubscriptionRef.current?.unsubscribe();
-      messageSubscriptionRef.current?.unsubscribe();
+      console.log('Cleaning up WebSocket client');
+      channelSubRef.current?.unsubscribe();
+      messageSubRef.current?.unsubscribe();
+      memberSubRef.current?.unsubscribe();
+      announcementSubRef.current?.unsubscribe();
+      assignmentSubRef.current?.unsubscribe();
       clientRef.current?.deactivate();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
-  // -------------------- Channels subscription --------------------
-  const subscribeToChannels = () => {
-    if (!clientRef.current || !clientRef.current.connected) return;
+  // Subscribe to all workspace topics when data is loaded and client is connected
+  useEffect(() => {
+    if (!workspace || !clientRef.current || !workspaceId) return;
 
-    channelSubscriptionRef.current?.unsubscribe();
-    channelSubscriptionRef.current = clientRef.current.subscribe(
+    // Wait for connection to be established
+    const setupSubscriptions = () => {
+      if (clientRef.current?.connected) {
+        console.log('Setting up subscriptions for workspace:', workspaceId);
+        subscribeToChannels();
+        subscribeToMembers();
+        subscribeToAnnouncements();
+        subscribeToAssignments();
+        if (selectedChannel) subscribeToMessages(selectedChannel);
+      } else {
+        // Retry after a short delay
+        setTimeout(setupSubscriptions, 100);
+      }
+    };
+
+    setupSubscriptions();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspace, workspaceId]);
+
+  // Subscribe to messages when channel changes and client is connected
+  useEffect(() => {
+    if (!selectedChannel || !clientRef.current || !workspaceId) return;
+
+    const setupMessageSubscription = () => {
+      if (clientRef.current?.connected) {
+        console.log('Setting up message subscription for channel:', selectedChannel.id);
+        subscribeToMessages(selectedChannel);
+      } else {
+        // Retry after a short delay
+        setTimeout(setupMessageSubscription, 100);
+      }
+    };
+
+    setupMessageSubscription();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedChannel]);
+
+  const subscribeToChannels = () => {
+    if (!clientRef.current?.connected || !workspaceId) {
+      console.log('Cannot subscribe to channels: client not connected or no workspaceId');
+      return;
+    }
+    console.log('Subscribing to channels for workspace:', workspaceId);
+    channelSubRef.current?.unsubscribe();
+    channelSubRef.current = clientRef.current.subscribe(
       `/topic/workspace/${workspaceId}/channels`,
       (msg) => {
+        console.log('Received channel message:', msg.body);
         const body = JSON.parse(msg.body);
         if (body.type === "NEW_CHANNEL") {
           setChannels((prev) => [...prev, body.channel]);
@@ -136,106 +234,148 @@ export default function WorkspacePage() {
     );
   };
 
-  // -------------------- Messages subscription --------------------
   const subscribeToMessages = (channel) => {
-    if (!clientRef.current || !clientRef.current.connected) return;
-
-    messageSubscriptionRef.current?.unsubscribe();
-    messageSubscriptionRef.current = clientRef.current.subscribe(
-      `/topic/channel/${channel.id}`,
+    if (!clientRef.current?.connected || !workspaceId || !channel) {
+      console.log('Cannot subscribe to messages: client not connected, no workspaceId, or no channel');
+      return;
+    }
+    console.log('Subscribing to messages for channel:', channel.id, 'in workspace:', workspaceId);
+    messageSubRef.current?.unsubscribe();
+    messageSubRef.current = clientRef.current.subscribe(
+      `/topic/workspace/${workspaceId}/channel/${channel.id}`,
       (msg) => {
+        console.log('Received message:', msg.body);
         const body = JSON.parse(msg.body);
         if (body.type === "NEW_MESSAGE") {
-          setMessages((prev) => [...prev, body.message]);
+          setMessages((prev) => {
+            // Deduplicate: replace optimistic message or add new one
+            const exists = prev.some((m) => m.id === body.message.id);
+            if (exists) {
+              return prev.map((m) => m.id === body.message.id ? body.message : m);
+            }
+            return [...prev, body.message];
+          });
         } else if (body.type === "DELETE_MESSAGE") {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === body.messageId ? { ...m, deleting: true } : m
-            )
-          );
-          setTimeout(() => {
-            setMessages((prev) =>
-              prev.filter((m) => m.id !== body.messageId)
-            );
-          }, 300);
+          setMessages((prev) => prev.filter((m) => m.id !== body.messageId));
         }
       }
     );
   };
 
-  // -------------------- Switch channel --------------------
-  useEffect(() => {
-    if (!selectedChannel || !clientRef.current) return;
-    if (clientRef.current.connected) subscribeToMessages(selectedChannel);
-  }, [selectedChannel]);
+  const subscribeToMembers = () => {
+    if (!clientRef.current?.connected || !workspaceId) {
+      console.log('Cannot subscribe to members: client not connected or no workspaceId');
+      return;
+    }
+    console.log('Subscribing to members for workspace:', workspaceId);
+    memberSubRef.current?.unsubscribe();
+    memberSubRef.current = clientRef.current.subscribe(
+      `/topic/workspace/${workspaceId}/members`,
+      (msg) => {
+        console.log('Received member message:', msg.body);
+        const body = JSON.parse(msg.body);
+        if (body.type === "MEMBER_JOINED") {
+          setMembers((prev) => [...prev, body.member]);
+        } else if (body.type === "MEMBER_LEFT") {
+          setMembers((prev) => prev.filter((m) => m.userId !== body.userId));
+        }
+      }
+    );
+  };
 
-  // -------------------- Auto scroll --------------------
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  const subscribeToAnnouncements = () => {
+    if (!clientRef.current?.connected || !workspaceId) {
+      console.log('Cannot subscribe to announcements: client not connected or no workspaceId');
+      return;
+    }
+    console.log('Subscribing to announcements for workspace:', workspaceId);
+    announcementSubRef.current?.unsubscribe();
+    announcementSubRef.current = clientRef.current.subscribe(
+      `/topic/workspace/${workspaceId}/announcements`,
+      (msg) => {
+        console.log('Received announcement message:', msg.body);
+        const body = JSON.parse(msg.body);
+        if (body.type === "NEW_ANNOUNCEMENT") {
+          setAnnouncements((prev) => [body.announcement, ...prev]);
+        } else if (body.type === "DELETE_ANNOUNCEMENT") {
+          setAnnouncements((prev) => prev.filter((a) => a.id !== body.announcementId));
+        }
+      }
+    );
+  };
 
-  // -------------------- Send / Delete Messages --------------------
+  const subscribeToAssignments = () => {
+    if (!clientRef.current?.connected || !workspaceId) {
+      console.log('Cannot subscribe to assignments: client not connected or no workspaceId');
+      return;
+    }
+    console.log('Subscribing to assignments for workspace:', workspaceId);
+    assignmentSubRef.current?.unsubscribe();
+    assignmentSubRef.current = clientRef.current.subscribe(
+      `/topic/workspace/${workspaceId}/assignments`,
+      (msg) => {
+        console.log('Received assignment message:', msg.body);
+        const body = JSON.parse(msg.body);
+        if (body.type === "NEW_ASSIGNMENT") {
+          setAssignments((prev) => [body.assignment, ...prev]);
+        } else if (body.type === "DELETE_ASSIGNMENT") {
+          setAssignments((prev) => prev.filter((a) => a.id !== body.assignmentId));
+        }
+      }
+    );
+  };
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedChannel) return;
-    const content = newMessage.trim();
-    setNewMessage("");
-
+    
+    const messageContent = newMessage.trim();
+    
     try {
-      await axios.post(
-        `http://localhost:8080/messages/channel/${selectedChannel.id}`,
-        { content },
-        { params: { senderId: currentUser.id } }
-      );
+      // Send to API - backend will broadcast via WebSocket
+      await messageService.sendMessage(selectedChannel.id, currentUser.id, messageContent);
+      setNewMessage("");
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.error || "Failed to send message");
+      alert("Failed to send message");
     }
   };
 
   const handleDeleteMessage = async (messageId) => {
-    if (!window.confirm("Delete this message?")) return;
+    if (!window.confirm("Delete message?")) return;
     try {
-      await axios.delete(
-        `http://localhost:8080/messages/${messageId}`,
-        { params: { requesterId: currentUser.id } }
-      );
+      await messageService.deleteMessage(messageId, currentUser.id);
+      // Backend broadcasts deletion via WebSocket
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.error || "Cannot delete this message");
+      alert("Failed to delete message");
     }
   };
 
-  // -------------------- Channels --------------------
   const handleCreateChannel = async () => {
-    if (!newChannelName.trim()) return alert("Channel name cannot be empty");
+    if (!newChannelName.trim()) return;
     try {
-      await channelService.createChannel(
-        workspaceId,
-        currentUser.id,
-        newChannelName.trim()
-      );
+      await channelService.createChannel(workspaceId, currentUser.id, newChannelName.trim());
       setNewChannelName("");
-      // Real-time update via WebSocket
+      // Backend broadcasts new channel via WebSocket
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.error || "Failed to create channel");
+      alert("Failed to create channel");
     }
   };
 
   const handleDeleteChannel = async (channelId) => {
-    if (!window.confirm("Delete this channel?")) return;
+    if (!window.confirm("Delete channel?")) return;
     try {
       await channelService.deleteChannel(channelId, currentUser.id);
-      // Real-time update via WebSocket
+      // Backend broadcasts deletion via WebSocket
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.error || "Failed to delete channel");
+      alert("Failed to delete channel");
     }
   };
 
-  // -------------------- Members --------------------
   const handleAddMember = async () => {
-    if (!newMemberEmail.trim()) return alert("Enter a member email");
+    if (!newMemberEmail.trim()) return;
     try {
       await memberService.addMember(workspaceId, currentUser.id, newMemberEmail.trim());
       const updatedMembers = await memberService.getWorkspaceMembers(workspaceId);
@@ -243,121 +383,262 @@ export default function WorkspacePage() {
       setNewMemberEmail("");
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.error || "Failed to add member");
+      alert("Failed to add member");
     }
   };
 
-  const handleRemoveMember = async (memberId) => {
-    if (!window.confirm("Remove this member?")) return;
+  const handleRemoveMember = async (memberId, userId) => {
+    if (!window.confirm("Remove member?")) return;
     try {
       await memberService.removeMember(workspaceId, memberId, currentUser.id);
-      setMembers((prev) => prev.filter((m) => m.userId !== memberId));
+      setMembers((prev) => prev.filter((m) => m.userId !== userId));
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.error || "Failed to remove member");
+      alert("Failed to remove member");
     }
   };
 
-  // -------------------- Render --------------------
-  if (!currentUser || loading) return <p className="loading">Loading workspace...</p>;
-  if (error) return <p className="error">{error}</p>;
+  const handleCreateAnnouncement = async () => {
+    try {
+      const created = await announcementService.createAnnouncement({
+        title: newAnnouncementTitle,
+        content: newAnnouncementContent,
+        workspaceId: parseInt(workspaceId, 10),
+        createdById: currentUser.id,
+      });
+      setAnnouncements((prev) => [created, ...prev]);
+      setNewAnnouncementTitle("");
+      setNewAnnouncementContent("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create announcement");
+    }
+  };
+
+  const handleDeleteAnnouncement = async (announcementId) => {
+    if (!window.confirm("Delete announcement?")) return;
+    try {
+      await announcementService.deleteAnnouncement(announcementId, currentUser.id);
+      setAnnouncements((prev) => prev.filter((item) => item.id !== announcementId));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete announcement");
+    }
+  };
+
+  const handleCreateAssignment = async () => {
+    try {
+      const created = await assignmentService.createAssignment({
+        title: newAssignmentTitle,
+        description: newAssignmentDescription,
+        dueDate: `${newAssignmentDue}T23:59:59`,
+        workspaceId: parseInt(workspaceId, 10),
+        createdById: currentUser.id,
+      });
+      setAssignments((prev) => [created, ...prev]);
+      setNewAssignmentTitle("");
+      setNewAssignmentDescription("");
+      setNewAssignmentDue("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create task");
+    }
+  };
+
+  const handleDeleteAssignment = async (assignmentId) => {
+    if (!window.confirm("Delete task?")) return;
+    try {
+      await assignmentService.deleteAssignment(assignmentId, currentUser.id);
+      setAssignments((prev) => prev.filter((item) => item.id !== assignmentId));
+      if (selectedAssignment?.id === assignmentId) setSelectedAssignment(null);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete task");
+    }
+  };
+
+  const handleUploadFile = async () => {
+    if (!newFileName.trim() || !newFileUrl.trim()) return;
+    try {
+      const payload = {
+        filename: newFileName,
+        fileUrl: newFileUrl,
+        uploadedBy: { id: currentUser.id },
+      };
+      if (fileContext === "message" && selectedMessage) {
+        payload.message = { id: selectedMessage.id };
+      }
+      if (fileContext === "assignment" && selectedAssignment) {
+        payload.assignment = { id: selectedAssignment.id };
+      }
+      await fileService.uploadFile(payload);
+      if (selectedMessage) {
+        const data = await fileService.getFilesByMessage(selectedMessage.id);
+        setMessageAttachments(data);
+      }
+      if (selectedAssignment) {
+        const data = await fileService.getFilesByAssignment(selectedAssignment.id);
+        setAssignmentAttachments(data);
+      }
+      setNewFileName("");
+      setNewFileUrl("");
+    } catch (err) {
+      alert("Failed to upload file");
+    }
+  };
+
+  const handleDeleteFile = async (fileId) => {
+    if (!window.confirm("Delete file?")) return;
+    try {
+      await fileService.deleteFile(fileId);
+      if (selectedMessage) {
+        const data = await fileService.getFilesByMessage(selectedMessage.id);
+        setMessageAttachments(data);
+      }
+      if (selectedAssignment) {
+        const data = await fileService.getFilesByAssignment(selectedAssignment.id);
+        setAssignmentAttachments(data);
+      }
+    } catch (err) {
+      alert("Failed to delete file");
+    }
+  };
+
+  const handleSelectMessage = (msg) => {
+    setSelectedMessage(msg);
+    setSelectedAssignment(null);
+    setFileContext("message");
+    setActiveTab("files");
+  };
+
+  const handleSelectAssignment = (assignment) => {
+    setSelectedAssignment(assignment);
+    setSelectedMessage(null);
+    setFileContext("assignment");
+    setActiveTab("files");
+  };
+
+  useEffect(() => {
+    if (selectedMessage) {
+      fileService.getFilesByMessage(selectedMessage.id).then(setMessageAttachments);
+    }
+  }, [selectedMessage]);
+
+  useEffect(() => {
+    if (selectedAssignment) {
+      fileService.getFilesByAssignment(selectedAssignment.id).then(setAssignmentAttachments);
+    }
+  }, [selectedAssignment]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
+  if (!currentUser || loading) return <div className="loading-screen">Loading...</div>;
+  if (error) return <div className="error-screen">{error}</div>;
 
   return (
-    <div className="workspace-layout">
-      {/* Channels Sidebar */}
-      <aside className="sidebar">
-        <h3>Channels</h3>
-        <div className="scrollable-list">
-          {channels.map((ch) => (
-            <div
-              key={ch.id}
-              className={`channel-item ${selectedChannel?.id === ch.id ? "active" : ""}`}
-              onClick={() => setSelectedChannel(ch)}
-            >
-              # {ch.name}
-              {isOwner && (
-                <span
-                  className="delete-btn"
-                  onClick={(e) => { e.stopPropagation(); handleDeleteChannel(ch.id); }}
-                >
-                  ×
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-        {isOwner && (
-          <div className="add-section">
-            <input
-              type="text"
-              placeholder="New channel"
-              value={newChannelName}
-              onChange={(e) => setNewChannelName(e.target.value)}
-            />
-            <button onClick={handleCreateChannel}>+</button>
-          </div>
-        )}
-      </aside>
+    <div className="workspace-page">
+      <WorkspaceHeader
+        workspace={workspace}
+        currentUser={currentUser}
+        isOwner={isOwner}
+        onLogout={handleLogout}
+      />
 
-      {/* Messages Area */}
-      <main className="messages-area">
-        <h3>{selectedChannel ? `#${selectedChannel.name}` : "Select a channel"}</h3>
-        <div className="scrollable-list">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`member-item ${msg.deleting ? "deleting" : ""}`}
-            >
-              <div className="member-avatar">{msg.senderName[0]}</div>
-              <div className="member-name">{msg.senderName}</div>
-              <div>{msg.content}</div>
-              {msg.senderId === currentUser.id && (
-                <span className="delete-btn" onClick={() => handleDeleteMessage(msg.id)}>×</span>
-              )}
-            </div>
-          ))}
-          <div ref={messagesEndRef}></div>
-        </div>
-        {selectedChannel && (
-          <div className="add-section">
-            <input
-              type="text"
-              placeholder="Type a message..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-            />
-            <button onClick={handleSendMessage}>Send</button>
-          </div>
-        )}
-      </main>
+      <div className="workspace-container">
+        <WorkspaceSwitcher
+          currentUser={currentUser}
+          currentWorkspaceId={workspaceId}
+          onSelectWorkspace={(wsId) => navigate(`/workspace/${wsId}`)}
+        />
 
-      {/* Members Sidebar */}
-      <aside className="sidebar">
-        <h3>Members</h3>
-        <div className="scrollable-list">
-          {members.map((m) => (
-            <div key={m.userId} className="member-item">
-              <div className="member-avatar">{m.userName[0]}</div>
-              <div className="member-name">{m.userName}</div>
-              {isOwner && m.userId !== currentUser.id && (
-                <span className="delete-btn" onClick={() => handleRemoveMember(m.userId)}>×</span>
-              )}
-            </div>
-          ))}
-        </div>
-        {isOwner && (
-          <div className="add-section">
-            <input
-              type="text"
-              placeholder="Member email"
-              value={newMemberEmail}
-              onChange={(e) => setNewMemberEmail(e.target.value)}
+        <ChannelSidebar
+          channels={channels}
+          selectedChannel={selectedChannel}
+          onSelectChannel={setSelectedChannel}
+          onCreateChannel={handleCreateChannel}
+          onDeleteChannel={handleDeleteChannel}
+          isOwner={isOwner}
+          newChannelName={newChannelName}
+          setNewChannelName={setNewChannelName}
+        />
+
+        <ChatPanel
+          selectedChannel={selectedChannel}
+          messages={messages}
+          currentUser={currentUser}
+          newMessage={newMessage}
+          setNewMessage={setNewMessage}
+          onSendMessage={handleSendMessage}
+          onDeleteMessage={handleDeleteMessage}
+          onMessageClick={handleSelectMessage}
+        />
+
+        <RightPanel activeTab={activeTab} setActiveTab={setActiveTab}>
+          {activeTab === "members" && (
+            <MemberPanel
+              members={members}
+              users={users}
+              currentUser={currentUser}
+              isOwner={isOwner}
+              newMemberEmail={newMemberEmail}
+              setNewMemberEmail={setNewMemberEmail}
+              onAddMember={handleAddMember}
+              onRemoveMember={handleRemoveMember}
             />
-            <button onClick={handleAddMember}>+</button>
-          </div>
-        )}
-      </aside>
+          )}
+
+          {activeTab === "announcements" && (
+            <AnnouncementPanel
+              announcements={announcements}
+              currentUser={currentUser}
+              newTitle={newAnnouncementTitle}
+              setNewTitle={setNewAnnouncementTitle}
+              newContent={newAnnouncementContent}
+              setNewContent={setNewAnnouncementContent}
+              onCreate={handleCreateAnnouncement}
+              onDelete={handleDeleteAnnouncement}
+            />
+          )}
+
+          {activeTab === "assignments" && (
+            <AssignmentPanel
+              assignments={assignments}
+              selectedAssignment={selectedAssignment}
+              currentUser={currentUser}
+              newTitle={newAssignmentTitle}
+              setNewTitle={setNewAssignmentTitle}
+              newDescription={newAssignmentDescription}
+              setNewDescription={setNewAssignmentDescription}
+              newDueDate={newAssignmentDue}
+              setNewDueDate={setNewAssignmentDue}
+              onCreate={handleCreateAssignment}
+              onDelete={handleDeleteAssignment}
+              onSelect={handleSelectAssignment}
+            />
+          )}
+
+          {activeTab === "files" && (
+            <FilePanel
+              selectedMessage={selectedMessage}
+              selectedAssignment={selectedAssignment}
+              messageAttachments={messageAttachments}
+              assignmentAttachments={assignmentAttachments}
+              allFiles={allFiles}
+              newFileName={newFileName}
+              setNewFileName={setNewFileName}
+              newFileUrl={newFileUrl}
+              setNewFileUrl={setNewFileUrl}
+              fileContext={fileContext}
+              setFileContext={setFileContext}
+              onUpload={handleUploadFile}
+              onDelete={handleDeleteFile}
+            />
+          )}
+        </RightPanel>
+      </div>
     </div>
   );
 }

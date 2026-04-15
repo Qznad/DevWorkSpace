@@ -1,14 +1,20 @@
 package com.example.devworkspace.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+@Setter
+@Getter
 @Entity
 @Table(name = "workspaces")
 public class Workspace {
 
+    // Getters & setters
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,19 +35,10 @@ public class Workspace {
     )
     private Set<User> members = new HashSet<>();
 
-    // Getters & setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Workspace(Long id) { this.id = id; }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public Workspace() {
 
-    public User getOwner() { return owner; }
-    public void setOwner(User owner) { this.owner = owner; }
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
-    public Set<User> getMembers() { return members; }
-    public void setMembers(Set<User> members) { this.members = members; }
 }

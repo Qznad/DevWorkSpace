@@ -31,6 +31,8 @@ public class User {
         this.createdAt = LocalDateTime.now();
     }
 
+    public User(Long id) { this.id = id; }
+
     // Getters & Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

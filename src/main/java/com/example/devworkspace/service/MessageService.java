@@ -63,6 +63,7 @@ public class MessageService {
         dto.setSenderName(message.getSender().getName());
         dto.setChannelId(message.getChannel().getId());
         dto.setChannelName(message.getChannel().getName());
+        dto.setWorkspaceId(message.getChannel().getWorkspace().getId());
         return dto;
     }
 

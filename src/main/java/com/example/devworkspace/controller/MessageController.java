@@ -13,6 +13,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/messages")
+@CrossOrigin(origins = "http://localhost:3000")
 public class MessageController {
 
     private final MessageService messageService;
@@ -35,11 +36,19 @@ public class MessageController {
         try {
             Message message = messageService.sendMessage(channelId, senderId, messageDto.getContent());
             MessageDto dto = messageService.mapToDto(message);
+            
+            // Get workspace ID from the channel
+            Long workspaceId = message.getChannel().getWorkspace().getId();
 
             // Broadcast the new message to clients subscribed to this channel
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("type", "NEW_MESSAGE");
+            payload.put("message", dto);
+            payload.put("timestamp", System.currentTimeMillis());
+            
             messagingTemplate.convertAndSend(
-                    "/topic/channel/" + channelId,
-                    Optional.of(Map.of("type", "NEW_MESSAGE", "message", dto))
+                    "/topic/workspace/" + workspaceId + "/channel/" + channelId,
+                    (Object) payload
             );
 
             return ResponseEntity.ok(dto);
@@ -59,11 +68,19 @@ public class MessageController {
         try {
             // Delete message and get its DTO before deletion
             MessageDto dto = messageService.deleteMessage(messageId, requesterId);
+            
+            Long workspaceId = dto.getWorkspaceId();
+            Long channelId = dto.getChannelId();
 
             // Notify all subscribers that message was deleted
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("type", "DELETE_MESSAGE");
+            payload.put("messageId", dto.getId());
+            payload.put("timestamp", System.currentTimeMillis());
+            
             messagingTemplate.convertAndSend(
-                    "/topic/channel/" + dto.getChannelId(),
-                    Optional.of(Map.of("type", "DELETE_MESSAGE", "messageId", dto.getId()))
+                    "/topic/workspace/" + workspaceId + "/channel/" + channelId,
+                    (Object) payload
             );
 
             return ResponseEntity.ok(Map.of("message", "Message deleted successfully"));

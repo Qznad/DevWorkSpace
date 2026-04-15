@@ -81,4 +81,11 @@ public class ChannelService {
         return channelRepository.findById(channelId)
                 .orElseThrow(() -> new RuntimeException("Channel not found"));
     }
+
+    // ----------------------------
+    // Get channels as Entity objects
+    // ----------------------------
+    public List<Channel> getChannelsByWorkspace(Long workspaceId) {
+        return channelRepository.findByWorkspaceId(workspaceId);
+    }
 }

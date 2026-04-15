@@ -26,6 +26,22 @@ public class ChannelController {
     }
 
     // ----------------------------
+    // Get all channels in a workspace
+    // ----------------------------
+    @GetMapping("/workspace/{workspaceId}")
+    public ResponseEntity<List<ChannelDto>> getChannels(@PathVariable Long workspaceId) {
+        try {
+            List<Channel> channels = channelService.getChannelsByWorkspace(workspaceId);
+            List<ChannelDto> dtos = channels.stream()
+                    .map(c -> new ChannelDto(c.getId(), c.getName(), c.getWorkspace().getId()))
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(dtos);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // ----------------------------
     // Create a channel (owner-only)
     // ----------------------------
     @PostMapping("/workspace/{workspaceId}")
@@ -44,27 +60,20 @@ public class ChannelController {
             );
 
             // Broadcast new channel
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("type", "NEW_CHANNEL");
+            payload.put("channel", responseDto);
+            payload.put("timestamp", System.currentTimeMillis());
+            
             messagingTemplate.convertAndSend(
                     "/topic/workspace/" + workspaceId + "/channels",
-                    Optional.of(Map.of("type", "NEW_CHANNEL", "channel", responseDto))
+                    (Object) payload
             );
 
             return ResponseEntity.ok(responseDto);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-    }
-
-    // ----------------------------
-    // Get all channels in a workspace
-    // ----------------------------
-    @GetMapping("/workspace/{workspaceId}")
-    public ResponseEntity<List<ChannelDto>> getChannels(@PathVariable Long workspaceId) {
-        List<ChannelDto> channels = channelService.getWorkspaceChannels(workspaceId)
-                .stream()
-                .map(c -> new ChannelDto(c.getId(), c.getName(), c.getWorkspaceId()))
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(channels);
     }
 
     // ----------------------------
@@ -77,12 +86,18 @@ public class ChannelController {
     ) {
         try {
             Channel channel = channelService.getChannelById(channelId); // fetch for workspaceId
+            Long workspaceId = channel.getWorkspace().getId();
             channelService.deleteChannel(channelId, requesterId);
 
             // Broadcast channel deletion
+            java.util.Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("type", "DELETE_CHANNEL");
+            payload.put("channelId", channelId);
+            payload.put("timestamp", System.currentTimeMillis());
+            
             messagingTemplate.convertAndSend(
-                    "/topic/workspace/" + channel.getWorkspace().getId() + "/channels",
-                    Optional.of(Map.of("type", "DELETE_CHANNEL", "channelId", channelId))
+                    "/topic/workspace/" + workspaceId + "/channels",
+                    (Object) payload
             );
 
             return ResponseEntity.ok(Map.of("message", "Channel deleted"));

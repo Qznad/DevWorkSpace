@@ -6,9 +6,11 @@ import com.example.devworkspace.entity.User;
 import com.example.devworkspace.service.WorkspaceMemberService;
 import com.example.devworkspace.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:3000")
@@ -16,15 +18,39 @@ import java.util.List;
 public class WorkspaceMemberController {
 
     private final WorkspaceMemberService memberService;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public WorkspaceMemberController(WorkspaceMemberService memberService) {
+    public WorkspaceMemberController(WorkspaceMemberService memberService, SimpMessagingTemplate messagingTemplate) {
         this.memberService = memberService;
+        this.messagingTemplate = messagingTemplate;
     }
 
-    // Get members of a workspace
-    @GetMapping("/{workspaceId}/members")
-    public ResponseEntity<List<WorkspaceMemberDTO>> getWorkspaceMembers(@PathVariable Long workspaceId) {
-        return ResponseEntity.ok(memberService.getWorkspaceMembersDTO(workspaceId));
+    // Remove member
+    @DeleteMapping("/{workspaceId}/members/{memberUserId}")
+    public ResponseEntity<?> removeMember(
+            @PathVariable Long workspaceId,
+            @PathVariable Long memberUserId,
+            @RequestParam Long requesterId
+    ) {
+        try {
+            memberService.removeMember(workspaceId, memberUserId, requesterId);
+            
+            // Broadcast member removal
+            Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("type", "MEMBER_LEFT");
+            payload.put("memberId", memberUserId);
+            payload.put("userId", memberUserId);
+            payload.put("timestamp", System.currentTimeMillis());
+            
+            messagingTemplate.convertAndSend(
+                    "/topic/workspace/" + workspaceId + "/members",
+                    (Object) payload
+            );
+            
+            return ResponseEntity.ok("Member removed successfully");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
     }
 
     // Add member to workspace (owner only)
@@ -41,6 +67,18 @@ public class WorkspaceMemberController {
                     request.getEmail(),
                     request.getRole()
             );
+            
+            // Broadcast member join
+            Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("type", "MEMBER_JOINED");
+            payload.put("member", newMember);
+            payload.put("timestamp", System.currentTimeMillis());
+            
+            messagingTemplate.convertAndSend(
+                    "/topic/workspace/" + workspaceId + "/members",
+                    (Object) payload
+            );
+            
             return ResponseEntity.ok(newMember);
         } catch (RuntimeException e) {
             e.printStackTrace();
@@ -48,19 +86,10 @@ public class WorkspaceMemberController {
         }
     }
 
-    // Remove member
-    @DeleteMapping("/{workspaceId}/members/{memberUserId}")
-    public ResponseEntity<?> removeMember(
-            @PathVariable Long workspaceId,
-            @PathVariable Long memberUserId,
-            @RequestParam Long requesterId
-    ) {
-        try {
-            memberService.removeMember(workspaceId, memberUserId, requesterId);
-            return ResponseEntity.ok("Member removed successfully");
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
-        }
+    // Get members of a workspace
+    @GetMapping("/{workspaceId}/members")
+    public ResponseEntity<List<WorkspaceMemberDTO>> getWorkspaceMembers(@PathVariable Long workspaceId) {
+        return ResponseEntity.ok(memberService.getWorkspaceMembersDTO(workspaceId));
     }
 
     // DTO for POST request

@@ -38,8 +38,20 @@ const deleteWorkspace = async (workspaceId, userId) => {
   }
 };
 
+// Get a single workspace
+const getWorkspace = async (workspaceId) => {
+  try {
+    const response = await axios.get(`${API_URL}/${workspaceId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching workspace:", error);
+    throw error;
+  }
+};
+
 const workspaceService = {
   getUserWorkspaces,
+  getWorkspace,
   createWorkspace,
   deleteWorkspace,
 };

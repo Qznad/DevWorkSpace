@@ -16,5 +16,6 @@ public class MessageDto {
     private String senderName;
     private Long channelId;
     private String channelName;
+    private Long workspaceId;
 
 }
