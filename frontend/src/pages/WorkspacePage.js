@@ -378,8 +378,7 @@ export default function WorkspacePage() {
     if (!newMemberEmail.trim()) return;
     try {
       await memberService.addMember(workspaceId, currentUser.id, newMemberEmail.trim());
-      const updatedMembers = await memberService.getWorkspaceMembers(workspaceId);
-      setMembers(updatedMembers);
+      // Backend broadcasts member addition via WebSocket - no manual state update needed
       setNewMemberEmail("");
     } catch (err) {
       console.error(err);
@@ -390,8 +389,8 @@ export default function WorkspacePage() {
   const handleRemoveMember = async (memberId, userId) => {
     if (!window.confirm("Remove member?")) return;
     try {
-      await memberService.removeMember(workspaceId, memberId, currentUser.id);
-      setMembers((prev) => prev.filter((m) => m.userId !== userId));
+      await memberService.removeMember(workspaceId, userId, currentUser.id);
+      // Backend broadcasts member removal via WebSocket - no manual state update needed
     } catch (err) {
       console.error(err);
       alert("Failed to remove member");
@@ -400,13 +399,13 @@ export default function WorkspacePage() {
 
   const handleCreateAnnouncement = async () => {
     try {
-      const created = await announcementService.createAnnouncement({
+      await announcementService.createAnnouncement({
         title: newAnnouncementTitle,
         content: newAnnouncementContent,
         workspaceId: parseInt(workspaceId, 10),
         createdById: currentUser.id,
       });
-      setAnnouncements((prev) => [created, ...prev]);
+      // Backend broadcasts creation via WebSocket - no manual state update needed
       setNewAnnouncementTitle("");
       setNewAnnouncementContent("");
     } catch (err) {
@@ -419,7 +418,7 @@ export default function WorkspacePage() {
     if (!window.confirm("Delete announcement?")) return;
     try {
       await announcementService.deleteAnnouncement(announcementId, currentUser.id);
-      setAnnouncements((prev) => prev.filter((item) => item.id !== announcementId));
+      // Backend broadcasts deletion via WebSocket - no manual state update needed
     } catch (err) {
       console.error(err);
       alert("Failed to delete announcement");
@@ -428,14 +427,14 @@ export default function WorkspacePage() {
 
   const handleCreateAssignment = async () => {
     try {
-      const created = await assignmentService.createAssignment({
+      await assignmentService.createAssignment({
         title: newAssignmentTitle,
         description: newAssignmentDescription,
         dueDate: `${newAssignmentDue}T23:59:59`,
         workspaceId: parseInt(workspaceId, 10),
         createdById: currentUser.id,
       });
-      setAssignments((prev) => [created, ...prev]);
+      // Backend broadcasts creation via WebSocket - no manual state update needed
       setNewAssignmentTitle("");
       setNewAssignmentDescription("");
       setNewAssignmentDue("");
@@ -449,8 +448,7 @@ export default function WorkspacePage() {
     if (!window.confirm("Delete task?")) return;
     try {
       await assignmentService.deleteAssignment(assignmentId, currentUser.id);
-      setAssignments((prev) => prev.filter((item) => item.id !== assignmentId));
-      if (selectedAssignment?.id === assignmentId) setSelectedAssignment(null);
+      // Backend broadcasts deletion via WebSocket - no manual state update needed
     } catch (err) {
       console.error(err);
       alert("Failed to delete task");
