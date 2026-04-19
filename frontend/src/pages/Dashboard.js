@@ -80,6 +80,9 @@ export default function Dashboard() {
 
   // Logout
   const handleLogout = () => {
+    // Clear both sessionStorage and localStorage
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     navigate("/login");

@@ -529,7 +529,11 @@ export default function WorkspacePage() {
   }, [selectedAssignment]);
 
   const handleLogout = () => {
+    // Clear both sessionStorage and localStorage
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     navigate("/login");
   };
 

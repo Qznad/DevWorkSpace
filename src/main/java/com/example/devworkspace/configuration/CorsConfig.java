@@ -14,10 +14,17 @@ public class CorsConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(@NonNull CorsRegistry registry) {
-                registry.addMapping("/**")           // allow all endpoints
-                        .allowedOrigins("http://localhost:3000") // React dev server
+                registry.addMapping("/**")
+                        // Allow specific origins only (update with your production domain)
+                        .allowedOrigins("http://localhost:3000", "http://localhost:8080")
+                        // Only allow necessary HTTP methods
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("*");
+                        // Restrict headers to essentials
+                        .allowedHeaders("Content-Type", "Authorization", "X-Requested-With")
+                        // Allow credentials to be sent
+                        .allowCredentials(true)
+                        // Cache CORS preflight for 1 hour
+                        .maxAge(3600);
             }
         };
     }

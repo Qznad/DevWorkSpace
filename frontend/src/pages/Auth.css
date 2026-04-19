@@ -128,6 +128,25 @@
   transform: translateY(0);
 }
 
+.auth-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.field-error {
+  color: #fca5a5;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: -0.25rem;
+  display: block;
+}
+
 .auth-message {
   padding: 0.75rem 1rem;
   border-radius: 8px;

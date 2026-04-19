@@ -29,7 +29,7 @@ export default function WorkspaceSwitcher({
   return (
     <aside className="workspace-switcher">
       <div className="switcher-header">
-        <div className="switcher-title">Workspaces</div>
+        <div className="switcher-title">Spaces</div>
       </div>
 
       <div className="workspaces-scroll">

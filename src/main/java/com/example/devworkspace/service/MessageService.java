@@ -6,6 +6,7 @@ import com.example.devworkspace.entity.Message;
 import com.example.devworkspace.entity.User;
 import com.example.devworkspace.repository.ChannelRepository;
 import com.example.devworkspace.repository.MessageRepository;
+import com.example.devworkspace.repository.WorkspaceMemberRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,22 +18,35 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final ChannelRepository channelRepository;
     private final UserService userService;
+    private final WorkspaceMemberRepository workspaceMemberRepository;
 
     public MessageService(MessageRepository messageRepository,
                           ChannelRepository channelRepository,
-                          UserService userService) {
+                          UserService userService,
+                          WorkspaceMemberRepository workspaceMemberRepository) {
         this.messageRepository = messageRepository;
         this.channelRepository = channelRepository;
         this.userService = userService;
+        this.workspaceMemberRepository = workspaceMemberRepository;
     }
 
     // ----------------------------
     // Send a message
     // ----------------------------
     public Message sendMessage(Long channelId, Long senderId, String content) {
+        // Validate content
+        if (content == null || content.trim().isEmpty()) {
+            throw new RuntimeException("Message content cannot be empty");
+        }
+
         User sender = userService.getUserById(senderId);
         Channel channel = channelRepository.findById(channelId)
                 .orElseThrow(() -> new RuntimeException("Channel not found"));
+
+        // Authorization: Check if sender is a member of the workspace
+        if (!workspaceMemberRepository.existsByWorkspaceAndUser(channel.getWorkspace(), sender)) {
+            throw new RuntimeException("You are not a member of this workspace");
+        }
 
         Message message = new Message();
         message.setContent(content);
@@ -74,6 +88,7 @@ public class MessageService {
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new RuntimeException("Message not found"));
 
+        // Authorization: Only message sender can delete their own messages
         if (!message.getSender().getId().equals(requesterId)) {
             throw new RuntimeException("You can only delete your own messages");
         }

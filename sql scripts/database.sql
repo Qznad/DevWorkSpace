@@ -134,33 +134,3 @@ CREATE INDEX idx_messages_user ON messages(user_id);
 CREATE INDEX idx_channels_workspace ON channels(workspace_id);
 CREATE INDEX idx_workspace_members_user ON workspace_members(user_id);
 CREATE INDEX idx_workspace_members_workspace ON workspace_members(workspace_id);
-
-
-
--- Users
-INSERT INTO users (name, email, password) VALUES 
-('Alice', 'alice@example.com', 'password123'),
-('Bob', 'bob@example.com', 'password123');
-
--- Workspaces
-INSERT INTO workspaces (name, owner_id) VALUES 
-('Team Alpha', 1),
-('Project Beta', 2);
-
--- Workspace Members
-INSERT INTO workspace_members (user_id, workspace_id, role) VALUES 
-(1, 1, 'owner'),
-(2, 1, 'member'),
-(2, 2, 'owner'),
-(1, 2, 'member');
-
--- Channels
-INSERT INTO channels (name, workspace_id) VALUES 
-('general', 1),
-('random', 1),
-('general', 2);
-
--- Messages
-INSERT INTO messages (content, user_id, channel_id) VALUES 
-('Hello Team!', 1, 1),
-('Hi Alice!', 2, 1);
