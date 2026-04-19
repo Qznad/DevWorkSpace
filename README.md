@@ -8,47 +8,47 @@
 
 A modern, full-stack **workspace collaboration platform** that enables teams to communicate, collaborate, and manage projects in real-time. Built with Spring Boot backend, React frontend, and packaged as a desktop application with Electron.
 
-## ✨ Features
+##  Features
 
-### 🔐 Authentication & User Management
+###  Authentication & User Management
 - User registration and login
 - Secure session management with JWT tokens
 - User profiles and account management
 
-### 🏢 Workspace Management
+###  Workspace Management
 - Create and manage multiple workspaces
 - Role-based access control (Owner/Member)
 - Invite and manage workspace members
 - Workspace-specific permissions
 
-### 💬 Real-Time Communication
+###  Real-Time Communication
 - **Channels**: Organize conversations by topic
 - **Messages**: Send and receive messages in real-time
 - **WebSocket Integration**: Instant message delivery using STOMP protocol
 - Message history and threading
 
-### 📢 Announcements
+###  Announcements
 - Create workspace-wide announcements
 - Real-time announcement broadcasting
 - Announcement history and management
 
-### 📋 Task Management
+###  Task Management
 - Create and assign tasks/assignments
 - Set due dates and descriptions
 - Track assignment progress
 - Assignment notifications
 
-### 📁 File Management
+###  File Management
 - Upload and share files
 - Associate files with messages or assignments
 - File metadata tracking
 
-### 🖥️ Desktop Application
+###  Desktop Application
 - Cross-platform desktop app built with Electron
 - Native desktop experience
 - Offline-ready interface
 
-## 🏗️ Architecture
+##  Architecture
 
 ### Backend (Spring Boot)
 - **Framework**: Spring Boot 4.0.3
@@ -72,7 +72,7 @@ A modern, full-stack **workspace collaboration platform** that enables teams to 
 - **Packaging**: Electron Builder
 - **Main Process**: Custom Electron main script
 
-## 📊 Database Schema
+##  Database Schema
 
 ### Core Tables
 - `users` - User accounts and profiles
@@ -84,7 +84,7 @@ A modern, full-stack **workspace collaboration platform** that enables teams to 
 - `assignments` - Tasks and assignments
 - `files` - File attachments and metadata
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 - **Java 17** or higher
@@ -147,7 +147,7 @@ A modern, full-stack **workspace collaboration platform** that enables teams to 
    npm run electron-pack
    ```
 
-## 🔧 API Endpoints
+##  API Endpoints
 
 ### Authentication
 - `POST /api/users/register` - User registration
@@ -169,7 +169,7 @@ A modern, full-stack **workspace collaboration platform** that enables teams to 
 
 ### And more... (see full API documentation)
 
-## 🔄 Real-Time Features
+##  Real-Time Features
 
 The application uses WebSocket connections for real-time updates:
 
@@ -179,7 +179,7 @@ The application uses WebSocket connections for real-time updates:
 - **Announcements**: Instant announcement delivery
 - **Assignment Updates**: Real-time task notifications
 
-## 🛠️ Development
+##  Development
 
 ### Project Structure
 ```
@@ -216,7 +216,7 @@ devworkspace/
 - `npm run electron` - Run Electron app
 - `npm run electron-pack` - Package for distribution
 
-## 🤝 Contributing
+##  Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -224,11 +224,11 @@ devworkspace/
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📝 License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📞 Support
+##  Support
 
 For questions or support, please open an issue in the GitHub repository.
 
